@@ -24,6 +24,19 @@ int main() {
     assert(g.move({1003,101,100},3001,invalid)==MoveResult::InvalidPolicy);
     // Clock windows are capped; cannot move huge distances after being AFK.
     assert(g.move({1003,130,100},999999999999ULL,p)==MoveResult::TooFast);
+    // Invalid policies are rejected consistently by all entry points.
+    MovementPolicy enormous=p; enormous.burst_allowance_units=1000001;
+    assert(g.authorized_teleport({1003,101,100},999999999999ULL,enormous)==MoveResult::InvalidPolicy);
+    assert(g.position().x==101);
+    // Failed spawn validation must invalidate an earlier character's movement
+    // session, rather than silently keeping that earlier trusted position.
+    assert(g.initialize({1002,-1,8},999999999999ULL,p)==MoveResult::InvalidCoordinates);
+    assert(!g.initialized());
+    assert(g.move({1003,101,100},999999999999ULL,p)==MoveResult::NotInitialized);
+    assert(g.initialize({1002,8,8},1000,enormous)==MoveResult::InvalidPolicy);
+    assert(!g.initialized());
+    assert(g.initialize({1002,8,8},1000,p)==MoveResult::Allowed);
+    assert(g.position().map_id==1002 && g.position().x==8 && g.position().y==8);
     g.reset();
     assert(!g.initialized());
     std::cout << "movement guard tests passed\n";
