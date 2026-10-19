@@ -26,6 +26,8 @@ def run(mysql):
     sql(mysql,"INSERT INTO account(id,name,password) VALUES(77,'fixture-only','not-a-real-password')")
     sql(mysql,"INSERT INTO user(account_id,name,lookface,profession,`force`,dexterity,health,soul,life,mana) "
               "VALUES(77,'BootTester',1003,10,4,5,6,7,180,35)")
+    uid=int(sql(mysql,"SELECT id FROM user WHERE account_id=77"))
+    assert 1000000 <= uid <= 1999999999, "COPS requires Entity::isPlayer(uid)"
     row=sql(mysql,"SELECT account_id,name,record_map,record_x,record_y,cps,metempsychosis "
                   "FROM user WHERE account_id=77")
     assert row=="77\tBootTester\t1002\t8\t8\t0\t0", ("create mismatch",row)
