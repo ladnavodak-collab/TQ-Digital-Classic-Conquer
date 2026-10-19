@@ -23,7 +23,7 @@ class GameProofTests(unittest.TestCase):
         self.assertEqual(len(value["encrypt_iv"]),8)
     def test_rejects_wrong_seal_or_size(self):
         raw=transform(fixture())
-        bad=raw[:-8]+b"Untrusted"
+        bad=raw[:-8]+b"BadSeal!"
         with self.assertRaisesRegex(ValueError,"seal"):
             decode_proof(transform(bad,encrypt=True))
         bad=bytearray(raw)
