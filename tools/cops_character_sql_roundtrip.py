@@ -24,7 +24,7 @@ def run(mysql):
     assert names == list(COLUMNS), "COPS SQLDATA positional mapping differs from schema"
 
     sql(mysql,"INSERT INTO account(id,name,password) VALUES(77,'fixture-only','not-a-real-password')")
-    sql(mysql,"INSERT INTO user(account_id,name,lookface,profession,force,dexterity,health,soul,life,mana) "
+    sql(mysql,"INSERT INTO user(account_id,name,lookface,profession,`force`,dexterity,health,soul,life,mana) "
               "VALUES(77,'BootTester',1003,10,4,5,6,7,180,35)")
     row=sql(mysql,"SELECT account_id,name,record_map,record_x,record_y,cps,metempsychosis "
                   "FROM user WHERE account_id=77")
@@ -32,10 +32,10 @@ def run(mysql):
 
     # Match COPS Database::savePlayer changed fields (UPDATE WHERE account_id).
     sql(mysql, "UPDATE user SET mate='',lookface=1003,hair=1,money=125,cps=0,"
-               "level=2,exp=42,force=5,dexterity=6,health=7,soul=8,add_points=2,"
+               "level=2,exp=42,`force`=5,dexterity=6,health=7,soul=8,add_points=2,"
                "life=205,mana=40,pk=0,virtue=10,metempsychosis=1,"
                "record_map=1002,record_x=9,record_y=10 WHERE account_id=77")
-    persisted=sql(mysql, "SELECT name,level,money,exp,force,dexterity,health,soul,life,mana,"
+    persisted=sql(mysql, "SELECT name,level,money,exp,`force`,dexterity,health,soul,life,mana,"
                         "metempsychosis,record_map,record_x,record_y "
                         "FROM user WHERE account_id=77")
     expected="BootTester\t2\t125\t42\t5\t6\t7\t8\t205\t40\t1\t1002\t9\t10"
