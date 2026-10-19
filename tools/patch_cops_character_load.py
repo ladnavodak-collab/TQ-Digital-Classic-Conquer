@@ -28,11 +28,13 @@ def patch(root):
         '''            uint32_t uid = (uint32_t)query.value(Player::SQLDATA_ID).toUInt();
             Player* player = new Player(aClient, uid);''',
         '''            // Reject invalid classic rows before allocating a Player.
+            // GameMap::enterRoom uses Entity::isPlayer(uid) to unpack terrain;
+            // non-player-range IDs can otherwise crash the walk handler.
             const uint32_t uid = query.value(Player::SQLDATA_ID).toUInt();
             const uint32_t cps = query.value(Player::SQLDATA_CONQUER_POINTS).toUInt();
             const uint32_t rebirths = query.value(Player::SQLDATA_METEMPSYCHOSIS).toUInt();
             const uint32_t mapId = query.value(Player::SQLDATA_RECORD_MAP).toUInt();
-            if (uid == 0 || cps != 0 || rebirths > 1 || mapId == 0)
+            if (!Entity::isPlayer(uid) || cps != 0 || rebirths > 1 || mapId == 0)
             {
                 LOG(ERROR, "Rejected invalid classic character row (id=%u).", uid);
                 return ERROR_INVALID_PARAMETER;
