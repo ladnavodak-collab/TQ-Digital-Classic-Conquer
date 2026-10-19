@@ -77,9 +77,13 @@ def redeem_transfer_ticket():
         dh_wire=transform(make_dh_response(public_b),encrypt=True)
         game_wire=transform(make_connect(uid,ticket),key=shared_key,
                             iv=params["decrypt_iv"],encrypt=True)
-        # Upstream parser requires the DH response and post-handshake game
-        # frame in a *single* receive. This is a known TCP-reassembly blocker.
-        sock.sendall(dh_wire+game_wire)
+        # Send the completed DH packet on its own. The COPS server must
+        # retain the negotiated session when no game frame accompanies the
+        # exchange; it must then accept a separately delivered MsgConnect.
+        sock.sendall(dh_wire)
+        import time
+        time.sleep(0.20)
+        sock.sendall(game_wire)
         reply=sock.recv(4096)
         if len(reply)<4:
             raise RuntimeError("No game-server response after DH and transfer ticket")
