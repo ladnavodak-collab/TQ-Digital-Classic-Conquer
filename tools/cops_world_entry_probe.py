@@ -4,6 +4,7 @@
 Fresh authenticated account -> game DH/token -> saved MsgUserInfo ->
 encrypted MsgAction ACTION_ENTER_MAP -> MsgMapInfo. Loopback-only CI.
 """
+import argparse
 import socket
 import struct
 
@@ -29,12 +30,12 @@ def make_enter_map(uid):
     # data,x,y,direction,action; per-frame TQClient suffix.
     return struct.pack("<HHiIiHHHH",24,MSG_ACTION,0,uid,0,0,0,0,ACTION_ENTER_MAP)+SEAL
 
-def decode_enter_map(frame,expected_uid):
+def decode_enter_map(frame,expected_uid,expected_x=8,expected_y=8):
     if len(frame)!=24:
         raise RuntimeError("unexpected enter-map action length")
     (size,msg_type,timestamp,uid,data,x,y,direction,action)=struct.unpack(
         "<HHiIiHHHH",frame)
-    if (size,msg_type,uid,data,x,y,action)!=(24,MSG_ACTION,expected_uid,MAP_ID,8,8,ACTION_ENTER_MAP):
+    if (size,msg_type,uid,data,x,y,action)!=(24,MSG_ACTION,expected_uid,MAP_ID,expected_x,expected_y,ACTION_ENTER_MAP):
         raise RuntimeError("unexpected COPS map entry action payload")
     return (x,y)
 
@@ -59,7 +60,7 @@ def receive_until(sock,shared,iv,ciphertext,predicate):
         raw.extend(chunk)
     raise RuntimeError("COPS encrypted game stream exceeded bounded test window")
 
-def enter_synthetic_map():
+def enter_synthetic_map(expected_x=8,expected_y=8):
     with socket.create_connection((HOST,GAME_PORT),timeout=4) as sock:
         sock.settimeout(12)
         params=read_challenge(sock)
@@ -94,7 +95,7 @@ def enter_synthetic_map():
                  and struct.unpack_from("<H",frame,22)[0]==ACTION_ENTER_MAP]
         if len(actions)!=1:
             raise RuntimeError("COPS did not acknowledge exactly one enter-map action")
-        x,y=decode_enter_map(actions[0],uid)
+        x,y=decode_enter_map(actions[0],uid,expected_x,expected_y)
         matches=[frame for typ,frame in frames if typ==MSG_MAPINFO]
         if len(matches)!=1:
             raise RuntimeError("ambiguous map metadata response from COPS")
@@ -104,10 +105,16 @@ def enter_synthetic_map():
                    for typ,frame in frames):
             raise RuntimeError("COPS did not send map-entry lighting state")
     print("PASS: real COPS accepted ACTION_ENTER_MAP for authenticated persisted character",flush=True)
-    print("PASS: original synthetic map 1002 entered at coordinates (8,8)",flush=True)
+    print("PASS: original synthetic map 1002 loaded at coordinates (%d,%d)"%(x,y),flush=True)
     print("PASS: decoded encrypted MsgMapInfo and map lighting action",flush=True)
-    print("The retail 5065 client, actual Twin City art, visible gameplay and movement are NOT verified.",flush=True)
+    print("The retail 5065 client, actual Twin City art and visible gameplay are NOT verified.",flush=True)
     return uid,flags
 
 if __name__=="__main__":
-    enter_synthetic_map()
+    parser=argparse.ArgumentParser()
+    parser.add_argument("--expected-x",type=int,default=8)
+    parser.add_argument("--expected-y",type=int,default=8)
+    args=parser.parse_args()
+    if not 0<=args.expected_x<16 or not 0<=args.expected_y<16:
+        parser.error("synthetic map coordinates must be within 0..15")
+    enter_synthetic_map(args.expected_x,args.expected_y)
