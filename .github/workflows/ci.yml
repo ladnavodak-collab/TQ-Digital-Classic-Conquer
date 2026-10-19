@@ -11,14 +11,10 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
-      - name: Dependencies
-        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
-      - name: Configure
-        run: cmake -S . -B build -DBUILD_TESTING=ON
-      - name: Build
-        run: cmake --build build --parallel 2
-      - name: All tests
-        run: ctest --test-dir build --output-on-failure
+      - run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
+      - run: cmake -S . -B build -DBUILD_TESTING=ON
+      - run: cmake --build build --parallel 2
+      - run: ctest --test-dir build --output-on-failure
   cpp-windows:
     runs-on: windows-latest
     steps:
@@ -29,10 +25,8 @@ jobs:
       - name: Configure
         shell: pwsh
         run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
-      - name: Build
-        run: cmake --build build --config Debug --parallel 2
-      - name: All tests
-        run: ctest --test-dir build -C Debug --output-on-failure
+      - run: cmake --build build --config Debug --parallel 2
+      - run: ctest --test-dir build -C Debug --output-on-failure
   rust:
     name: Rust / ${{ matrix.os }}
     runs-on: ${{ matrix.os }}
@@ -46,5 +40,13 @@ jobs:
     steps:
       - uses: actions/checkout@v4
       - uses: dtolnay/rust-toolchain@stable
+      - name: Ensure actual Rust sources exist
+        shell: bash
+        run: test -s src/lib.rs && test -s src/main.rs && test -s src/bin/client_window.rs
       - name: Rust unit tests
         run: cargo test --all-targets
+      - name: Check Rust CLI
+        run: cargo check --bin tq-classic-client-foundation
+      - name: Check graphical window (Windows)
+        if: matrix.os == 'windows-latest'
+        run: cargo check --features graphics --bin tq-classic-window
