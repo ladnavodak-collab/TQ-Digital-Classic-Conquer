@@ -6,7 +6,8 @@ namespace tq {
 namespace {
 bool valid_policy(const MovementPolicy& p) {
     return p.map_width > 0 && p.map_height > 0 && p.max_units_per_second > 0 &&
-           p.max_interval_ms > 0 && p.max_interval_ms <= 60000;
+           p.max_interval_ms > 0 && p.max_interval_ms <= 60000 &&
+           p.max_units_per_second <= 1000000u && p.burst_allowance_units <= 1000000u;
 }
 bool within_bounds(Position pos, const MovementPolicy& p) {
     return pos.map_id != 0 && pos.x >= 0 && pos.y >= 0 &&
@@ -20,6 +21,8 @@ std::uint64_t squared_distance(Position a, Position b) {
 }
 }
 MoveResult MovementGuard::initialize(Position spawn, std::uint64_t now, const MovementPolicy& p) {
+    // A failed reinitialization must not retain a previous character session.
+    reset();
     if (!valid_policy(p)) return MoveResult::InvalidPolicy;
     if (!within_bounds(spawn, p)) return MoveResult::InvalidCoordinates;
     position_ = spawn;
@@ -34,9 +37,7 @@ MoveResult MovementGuard::move(Position target, std::uint64_t now, const Movemen
     if (target.map_id != position_.map_id) return MoveResult::WrongMap;
     if (now < timestamp_ms_) return MoveResult::ClockRollback;
     const std::uint64_t elapsed = std::min(now-timestamp_ms_, p.max_interval_ms);
-    // Cap elapsed and use integer arithmetic. Guard the policy size to avoid overflow.
-    if (p.max_units_per_second > 1000000u || p.burst_allowance_units > 1000000u)
-        return MoveResult::InvalidPolicy;
+    // Cap elapsed and use integer arithmetic; policy was validated above.
     const std::uint64_t allowed = (static_cast<std::uint64_t>(p.max_units_per_second) * elapsed) / 1000u
         + p.burst_allowance_units;
     if (squared_distance(position_,target) > allowed*allowed) return MoveResult::TooFast;
