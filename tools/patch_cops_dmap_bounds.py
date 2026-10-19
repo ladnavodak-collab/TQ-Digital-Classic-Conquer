@@ -11,6 +11,7 @@ def replace_once(path, before, after):
 
 def patch(root: Path):
     path=root/"src/Map/mapdata.cpp"
+    replace_once(path, "#include <stdlib.h>", "#include <stdlib.h>\n#include <string.h>\n#include <stdint.h>")
     replace_once(path,
         """        if (width < UINT16_MAX && height < UINT16_MAX)
         {
