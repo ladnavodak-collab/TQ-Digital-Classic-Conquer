@@ -54,7 +54,12 @@ def receive_until(sock,shared,iv,ciphertext,predicate):
         frames,_=parse_frames(plain)
         if predicate(frames):
             return bytes(raw),frames
-        chunk=sock.recv(min(4096,MAX_WIRE-len(raw)))
+        try:
+            chunk=sock.recv(min(4096,MAX_WIRE-len(raw)))
+        except socket.timeout as err:
+            kinds=[(typ,len(frame)) for typ,frame in frames]
+            raise RuntimeError("Timed out waiting for map packets; "
+                               "received frame types/lengths: "+repr(kinds)) from err
         if not chunk:
             raise RuntimeError("COPS game disconnected before requested map data")
         raw.extend(chunk)
