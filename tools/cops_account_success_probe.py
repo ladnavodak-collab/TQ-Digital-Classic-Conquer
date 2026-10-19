@@ -83,25 +83,31 @@ def seed(cli):
     if result.returncode:raise RuntimeError("disposable account INSERT failed: "+result.stderr[-250:])
     print("PASS: fresh Argon2id account fixture written to disposable MariaDB",flush=True)
 
-def probe():
-    with socket.create_connection(("127.0.0.1",ACCOUNT_PORT),timeout=3) as sock:
+def request_response(password):
+    with socket.create_connection(('127.0.0.1',ACCOUNT_PORT),timeout=3) as sock:
         sock.settimeout(5)
-        sock.sendall(to_server(request_packet()))
+        sock.sendall(to_server(request_packet(password)))
         wire=bytearray()
         while len(wire)<40:
             data=sock.recv(128)
             if not data:break
             wire.extend(data)
-    if len(wire)<32:raise RuntimeError("COPS sent no account authentication response")
-    result=decode_response(wire)
-    length,typ,uid,token,ip,port=struct.unpack_from("<HHii16sI",result)
+    if len(wire)<32:raise RuntimeError('COPS sent no account response')
+    return struct.unpack_from('<HHii16sI',decode_response(wire))
+
+def probe():
+    length,typ,uid,token,ip,port=request_response(PASSWORD)
     if (length,typ,uid,port)!=(32,1055,ACCOUNT_ID,5816):
-        raise RuntimeError("Unexpected response fields: "+str((length,typ,uid,port)))
-    if token<10000:raise RuntimeError("No valid issued account-game ticket")
-    if ip.split(b"\0",1)[0]!=b"127.0.0.1":raise RuntimeError("Nonloopback redirect rejected")
-    print("PASS: real COPS authenticated an Argon2id test account and returned an encrypted transfer ticket",flush=True)
-    print("PASS: account ID, loopback game port and positive ticket decoded (ticket not logged)",flush=True)
-    print("No game-port DH, ticket redemption, 5065 client or character entry is asserted.",flush=True)
+        raise RuntimeError('Unexpected success response fields: '+str((length,typ,uid,port)))
+    if token<10000:raise RuntimeError('No valid issued account-game ticket')
+    if ip.split(bytes([0]),1)[0]!=b'127.0.0.1':raise RuntimeError('Nonloopback redirect')
+    print('PASS: actual COPS Argon2id account login generated encrypted game transfer ticket',flush=True)
+    # A real invalid password must never yield an authorized redirect or token.
+    length,typ,uid,token,ip,port=request_response('WrongPass567')
+    if (length,typ,uid,token,port)!=(32,1055,0,1,0):
+        raise RuntimeError('Wrong password not rejected: '+str((length,typ,uid,token,port)))
+    print('PASS: real COPS rejected incorrect Argon2id password with error code, no transfer ticket',flush=True)
+    print('No game DH, token consumption, 5065 client or gameplay asserted.',flush=True)
 
 if __name__=="__main__":
     ap=argparse.ArgumentParser()
