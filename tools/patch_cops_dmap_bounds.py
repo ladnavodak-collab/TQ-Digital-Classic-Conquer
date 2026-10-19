@@ -66,12 +66,12 @@ def patch(root: Path):
                                 if (posX >= 0 && posY >= 0 &&
                                     posX < mWidth && posY < mHeight)""")
     replace_once(path,
-        """                if (Finder::fileExists(fileName))""",
-        """                // Binary map filenames are fixed-size byte fields and may
-                // have no terminating NUL. Fail before strlen/log/file access.
+        """                DOIF(err, aReader.read(fileName, sizeof(fileName)));""",
+        """                DOIF(err, aReader.read(fileName, sizeof(fileName)));
+                // Reject a fixed-length binary path lacking a NUL terminator
+                // before the non-Windows path separator loop calls strlen.
                 if (err == ERROR_SUCCESS && !memchr(fileName, 0, sizeof(fileName)))
-                    return ERROR_BAD_LENGTH;
-                if (err == ERROR_SUCCESS && Finder::fileExists(fileName))""")
+                    return ERROR_BAD_LENGTH;""")
 
 if __name__=="__main__":
     if len(sys.argv)!=2:
