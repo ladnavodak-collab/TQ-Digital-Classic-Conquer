@@ -30,13 +30,13 @@ def swap_nibbles(byte):
 def to_server(plaintext):
     """Inverse of original COPS TqCipher::decrypt for a fresh connection."""
     a,b=initial_keys()
-    return bytes(swap_nibbles(c) ^ a[i & 255] ^ b[(i >> 8)&255] ^ 0xAB
+    return bytes(swap_nibbles(c ^ a[i & 255] ^ b[(i >> 8)&255]) ^ 0xAB
                  for i,c in enumerate(plaintext))
 
 def server_decrypt(ciphertext):
     """Mirror upstream server decrypt to independently check outbound bytes."""
     a,b=initial_keys()
-    return bytes(swap_nibbles(c ^ 0xAB ^ a[i & 255] ^ b[(i >> 8)&255])
+    return bytes(swap_nibbles(c ^ 0xAB) ^ a[i & 255] ^ b[(i >> 8)&255]
                  for i,c in enumerate(ciphertext))
 
 def malformed_account_packet():
