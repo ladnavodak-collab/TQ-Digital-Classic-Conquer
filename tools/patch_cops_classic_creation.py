@@ -22,10 +22,10 @@ def patch(root):
         "uint16_t& aOutHealth, uint16_t aOutSoul,",
         "uint16_t& aOutHealth, uint16_t& aOutSoul,")
     replace(db,
-        '''    ASSERT_ERR(aName != nullptr && aName[0] != '\0', ERROR_INVALID_PARAMETER);
+        r'''    ASSERT_ERR(aName != nullptr && aName[0] != '\0', ERROR_INVALID_PARAMETER);
 
     static const char cmd[] =''',
-        '''    ASSERT_ERR(aName != nullptr && aName[0] != '\0', ERROR_INVALID_PARAMETER);
+        r'''    ASSERT_ERR(aName != nullptr && aName[0] != '\0', ERROR_INVALID_PARAMETER);
 
     // Classic character selection: Trojan, Warrior, Archer and Taoist.
     // Reject Ninja and all post-Ninja starter classes at the server boundary.
