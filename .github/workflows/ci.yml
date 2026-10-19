@@ -1,4 +1,4 @@
-name: Private CI — Full Foundation
+name: Private CI - Full Foundation
 on:
   push:
     branches: [main]
@@ -48,5 +48,3 @@ jobs:
       - uses: dtolnay/rust-toolchain@stable
       - name: Rust unit tests
         run: cargo test --all-targets
-      - name: Rust settings CLI
-        run: cargo check --bin tq-classic-client-foundation

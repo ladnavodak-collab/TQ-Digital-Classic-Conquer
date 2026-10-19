@@ -1,0 +1,28 @@
+test_id,system,attack_or_failure_scenario,required_server_behavior,test_type,priority
+ACCT-01,auth,replay previous login packet,reject replay and log event,integration,P0
+ACCT-02,auth,invalid session/character ID,reject unauthorized access; no character leakage,integration,P0
+ACCT-03,auth,duplicate concurrent login,"one authoritative session, deterministic eviction",integration,P0
+NET-01,network,"fragment, coalesce and truncate frames","no crash, under/over-read or unbounded allocation",fuzz,P0
+NET-02,network,unknown opcodes and oversized lengths,reject safely; bounded memory and CPU,fuzz,P0
+NET-03,network,rate flood and slowloris,"per-IP/session quotas, clean disconnect",load,P0
+MOVE-01,movement,jump through walls/closed portal,server validates DMap collision and portal permissions,integration,P0
+MOVE-02,movement,movement speed hack/reordered packets,reject impossible deltas and sequence replay,integration,P0
+COMBAT-01,combat,attack from out of range/dead state,"server checks alive, map, range, LOS and skill eligibility",integration,P0
+COMBAT-02,combat,rapid repeated attack/cast,authoritative cooldown/stamina/mana; no double hit,property,P0
+COMBAT-03,combat,damage overflow/negative defense,checked arithmetic and hard upper bounds,property,P0
+ITEM-01,items,duplicate trade requests or disconnect mid-trade,all-or-nothing item ownership and currency transfer,integration,P0
+ITEM-02,items,simultaneous warehouse/equip/drop/sell,single owner/location invariant per item ID,concurrency,P0
+ITEM-03,items,forge item id / unauthorized garment stats,reject item actions; cosmetics do not change combat,integration,P0
+ITEM-04,items,repair/compose with insufficient funds,reject without partial removal of materials or silver,transaction,P0
+MONEY-01,economy,"negative, overflow, forged balance changes",64-bit checked silver and server-only mutation,property,P0
+MONEY-02,economy,CP / mall / CP redeem code path,unreachable and tested across NPC/packet/admin/script routes,integration,P0
+REB-01,rebirth,two simultaneous rebirth requests,exactly one success; rebirth count <= 1,concurrency,P0
+REB-02,rebirth,Ninja class ID through packet/NPC/script,reject at every class transition,integration,P0
+QUEST-01,daily quest,two simultaneous reward claims,unique claim and reward in same transaction; exactly-once grant,concurrency,P0
+QUEST-02,daily quest,alter client clock/time zone,authoritative server reset boundary only,integration,P1
+QUEST-03,daily quest,disconnect between claim and reward,"atomic rollback or commit, no lost or double rewards",fault-injection,P0
+DB-01,persistence,crash on trade/rebirth/quest commit,restored state has conserved items/silver/rewards,fault-injection,P0
+DB-02,persistence,SQL/script injection via names/dialogue,parameterized queries and escaping,fuzz,P0
+OPS-01,operations,remote host exposure / plaintext admin credentials,bind local until threat review; least privilege and safe secrets,review,P0
+OPS-02,operations,backup and restore,verified restoration and migration/rollback,recovery,P0
+PERF-01,stability,"many clients, spawns and dropped packets","no deadlocks, leaks, runaway CPU; defined thresholds",soak,P1

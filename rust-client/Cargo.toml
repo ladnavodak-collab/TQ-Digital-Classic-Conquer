@@ -1,0 +1,21 @@
+[package]
+name = "tq-classic-client-foundation"
+version = "0.1.0"
+edition = "2021"
+license = "MIT"
+description = "Original client-side settings and validation scaffold, not a game client"
+
+[dependencies]
+
+[features]
+default = []
+graphics = ["dep:minifb"]
+
+[dependencies.minifb]
+version = "0.27"
+optional = true
+
+[[bin]]
+name = "tq-classic-window"
+path = "src/bin/client_window.rs"
+required-features = ["graphics"]
