@@ -24,7 +24,8 @@ def decode_structure(data):
         pos+=4
         if n<0 or n>end-pos:raise ValueError("invalid DH component length")
         return n
-    declared=size()
+    (declared,)=struct.unpack_from('<i',data,pos)
+    pos+=4
     if declared != len(data)-11:
         raise ValueError("COPS challenge declared byte count mismatch")
     junk=size()
