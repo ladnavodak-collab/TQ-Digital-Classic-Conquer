@@ -22,7 +22,7 @@ UPSTREAM = """#include <stdlib.h>
                 size_t posX = ((startX + sceneOffsetX) + x) - width;
                                 size_t posY = ((startY + sceneOffsetY) + y) - height;
                                 if (posX < UINT16_MAX && posX < UINT16_MAX)
-                if (Finder::fileExists(fileName))
+                DOIF(err, aReader.read(fileName, sizeof(fileName)));
 """
 
 class DMapBoundsPatchTests(unittest.TestCase):
