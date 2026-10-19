@@ -19,6 +19,10 @@ on:
       - 'tools/cops_live_character_register.py'
       - 'tools/cops_existing_character_relogin.py'
       - 'tools/cops_world_entry_probe.py'
+      - 'tools/cops_live_walk_probe.py'
+      - 'tools/patch_cops_walk_guard.py'
+      - 'tests/test_cops_live_walk_probe.py'
+      - 'tests/test_cops_walk_guard.py'
       - 'tests/test_cops_world_entry_probe.py'
       - 'tests/test_cops_existing_character_relogin.py'
       - 'tests/test_cops_live_character_register.py'
@@ -101,10 +105,14 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_cops_world_entry_probe.py -v
       - name: Unit-test standalone DH response state transition
         run: python3 -m unittest discover -s tests -p test_cops_dh_zero_tail.py -v
+      - name: Unit-test real COPS walk authorization patch
+        run: python3 -m unittest discover -s tests -p test_cops_walk_guard.py -v
+      - name: Validate legacy MsgWalk packet and cipher continuation
+        run: python3 -m unittest discover -s tests -p test_cops_live_walk_probe.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client
+          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client gdb
       - name: Check out and harden upstream
         shell: bash
         run: |
@@ -125,6 +133,7 @@ jobs:
           python3 tools/patch_cops_classic_creation.py upstream-cops
           python3 tools/patch_cops_registration_ticket.py upstream-cops
           python3 tools/patch_cops_dh_zero_tail.py upstream-cops
+          python3 tools/patch_cops_walk_guard.py upstream-cops
           grep -q 'TransferTickets::instance().consume' upstream-cops/src/Network/msgconnect.cpp
           grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
           grep -q '16000000ULL' upstream-cops/src/Map/mapdata.cpp
@@ -145,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           cd upstream-cops
-          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          qmake "COPS v7 Emulator.pro" CONFIG+=release QMAKE_CXXFLAGS_RELEASE="-O0 -g"
           make -j2 > ../cops-build.log 2>&1 || { tail -n 90 ../cops-build.log; exit 1; }
           test -x "./COPS v7 Emulator"
       - name: Set up disposable MariaDB least-privilege account
@@ -254,8 +263,9 @@ jobs:
           python3 ../tools/cops_live_character_register.py register
           python3 ../tools/cops_existing_character_relogin.py
           python3 ../tools/cops_world_entry_probe.py
-          python3 ../tools/cops_game_challenge_probe.py ../cops-challenge-decode
-          python3 ../tools/cops_game_dh_probe.py
+          # Redundant read-only game challenge checks are already covered by
+          # cops_game_dh_proof_probe and the authenticated game relog; running
+          # multiple extra keygens with unoptimized debug COPS can time out.
           if ! kill -0 "$server_pid" 2>/dev/null; then
             echo "FAIL: COPS exited after truncated pre-login packets"
             exit 1
@@ -264,6 +274,56 @@ jobs:
       - name: Verify character actually created by authenticated COPS game packet
         shell: bash
         run: python3 tools/cops_live_character_register.py check-db sudo mariadb tq_ci
+      - name: Verify real authenticated MsgWalk and server-saved coordinates
+        shell: bash
+        run: |
+          set -euo pipefail
+          source "$RUNNER_TEMP/cops-ci.env"
+          export COPS_SQL_PASSWORD
+          cd startup-smoke
+          # Diagnostic debugger wrapper: if original COPS faults, obtain a
+          # native stack trace rather than guessing at the movement crash.
+          ulimit -c unlimited
+          gdb -q --batch -ex "set pagination off" -ex "run" \
+            -ex "frame 0" -ex "info args" \
+            -ex "p this->mData.mCells" -ex "p this->mData.mPckData" \
+            -ex "p this->mPlayerCount" -ex "thread apply all bt 10" \
+            --args "./COPS v7 Emulator" > walk-attempt.log 2>&1 &
+          server_pid=$!
+          cleanup() {
+            kill "$server_pid" 2>/dev/null || true
+            wait "$server_pid" 2>/dev/null || true
+          }
+          trap cleanup EXIT
+          python3 - <<'PY'
+          import socket, time
+          deadline=time.monotonic()+12
+          while True:
+              try:
+                  with socket.create_connection(('127.0.0.1',9958),timeout=0.25):
+                      break
+              except OSError:
+                  if time.monotonic()>deadline:
+                      raise RuntimeError("COPS account listener not ready for walk smoke")
+                  time.sleep(.2)
+          PY
+          if ! python3 ../tools/cops_live_walk_probe.py walk; then
+            echo "COPS movement crash diagnostics (bounded tail):"
+            tail -n 65 walk-attempt.log || true
+            for crash in core core.*; do
+              if [ -f "$crash" ]; then
+                echo "Native COPS stack trace:"
+                gdb -q --batch -ex "thread apply all bt 12" "./COPS v7 Emulator" "$crash" 2>&1 | tail -n 100 || true
+                break
+              fi
+            done
+            exit 1
+          fi
+          if ! kill -0 "$server_pid" 2>/dev/null; then
+            echo "FAIL: real COPS exited during walking"
+            exit 1
+          fi
+          python3 ../tools/cops_live_walk_probe.py check-db sudo mariadb tq_ci
       - name: Verify MariaDB character create/save/reload and classic limits
         shell: bash
         run: |
@@ -284,5 +344,6 @@ jobs:
             startup-smoke/guard-output.log
             startup-smoke/database-attempt.log
             startup-smoke/synthetic-attempt.log
+            startup-smoke/walk-attempt.log
           retention-days: 7
           if-no-files-found: ignore
