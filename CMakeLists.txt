@@ -85,3 +85,13 @@ if(SQLite3_FOUND)
         add_test(NAME economy_ledger COMMAND tq_economy_ledger_test)
     endif()
 endif()
+
+# Bounded plaintext TCP frame reassembler. NOT integrated with encrypted COPS traffic.
+add_library(tq_stream_reassembly src/stream_reassembly.cpp)
+target_include_directories(tq_stream_reassembly PUBLIC src)
+target_compile_features(tq_stream_reassembly PUBLIC cxx_std_17)
+if(BUILD_TESTING)
+    add_executable(tq_stream_reassembly_test tests/stream_reassembly_test.cpp)
+    target_link_libraries(tq_stream_reassembly_test PRIVATE tq_stream_reassembly)
+    add_test(NAME tcp_stream_reassembly COMMAND tq_stream_reassembly_test)
+endif()
