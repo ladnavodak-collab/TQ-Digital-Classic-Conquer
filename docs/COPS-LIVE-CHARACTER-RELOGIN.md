@@ -1,0 +1,5 @@
+Existing-character game-server re-login smoke (synthetic CI only)
+
+After authenticating via COPS with a disposable Argon2id account and creating an actual classic Trojan through the COPS registration packet, the new live test starts a **new** game-port connection, completes the legacy Blowfish/Diffie-Hellman key exchange, requests a **new** account transfer ticket, and redeems it. The test decrypts and checks the resulting COPS entrance MsgTalk, MsgDate and MsgUserInfo with exact legacy packet framing/seals and asserts the original character's UID, name, class, attributes, zero CP and zero rebirth. This distinguishes loading an **existing persisted character** from merely issuing a new-role prompt.
+
+Tests operate only on localhost with disposable MariaDB, original synthetic map 1002 and an original protocol simulator. The COPS port remains unavailable to external clients. No actual 5065 executable or game map assets are involved, so the game is not yet playable or visually tested. Encrypted TCP stream reassembly and client-version compatibility remain outstanding.
