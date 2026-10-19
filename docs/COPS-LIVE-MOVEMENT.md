@@ -1,0 +1,5 @@
+COPS live movement smoke (original synthetic 16x16 flat map)
+
+This localhost-only integration test builds on the COPS-world-entry and saved-character CI: log in using synthetic Argon2id account, complete COPS Diffie-Hellman, redeem an expiring single-use game ticket, load AlphaTester, and enter diagnostic map 1002 at (8,8). It sends a 12-byte MsgWalk (direction east, 6) plus encrypted TQClient seal, then validates the server's encrypted acknowledgement. Because upstream sends its walk echo before moving the character, the test *also* sends a new enter-map request, verifying authoritative coordinates (9,8). This proves server-side map movement rather than merely accepting bytes.
+
+The DMap is a code-generated flat grid and not any proprietary client file, Twin City art, real collision data, or a 5065 retail client. Server-originated TCP segmentation, public deployment, NPC interactions, real graphical gameplay and persistence of the changed coordinates after logout are not yet covered. Test-only loopback environment.
