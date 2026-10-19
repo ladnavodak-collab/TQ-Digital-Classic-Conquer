@@ -38,6 +38,8 @@ on:
       - 'tools/patch_cops_character_load.py'
       - 'tools/patch_cops_classic_creation.py'
       - 'tools/patch_cops_registration_ticket.py'
+      - 'tools/patch_cops_dh_zero_tail.py'
+      - 'tests/test_cops_dh_zero_tail.py'
       - 'tests/test_cops_registration_ticket.py'
       - 'tests/test_cops_classic_creation.py'
       - 'tests/test_cops_character_load.py'
@@ -97,6 +99,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_cops_existing_character_relogin.py -v
       - name: Unit-test encrypted game map entry and packet framing
         run: python3 -m unittest discover -s tests -p test_cops_world_entry_probe.py -v
+      - name: Unit-test standalone DH response state transition
+        run: python3 -m unittest discover -s tests -p test_cops_dh_zero_tail.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
@@ -120,6 +124,7 @@ jobs:
           python3 tools/patch_cops_character_load.py upstream-cops
           python3 tools/patch_cops_classic_creation.py upstream-cops
           python3 tools/patch_cops_registration_ticket.py upstream-cops
+          python3 tools/patch_cops_dh_zero_tail.py upstream-cops
           grep -q 'TransferTickets::instance().consume' upstream-cops/src/Network/msgconnect.cpp
           grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
           grep -q '16000000ULL' upstream-cops/src/Map/mapdata.cpp
