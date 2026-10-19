@@ -9,6 +9,7 @@ void boot() {
     DOIF(err, db.loadAllMagics());
 
     fprintf(stdout, "\\n");
+
     mAccServer.listen(Server::ACCSERVER_PORT);
     mMsgServer.listen(Server::MSGSERVER_PORT);
 }
