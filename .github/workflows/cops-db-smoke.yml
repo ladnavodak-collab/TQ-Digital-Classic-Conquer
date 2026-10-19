@@ -6,6 +6,7 @@ on:
       - '.github/workflows/cops-db-smoke.yml'
       - 'docs/COPS-DATABASE-SMOKE.md'
       - 'tools/patch_cops_startup_gate.py'
+      - 'tools/patch_cops_dmap_bounds.py'
 permissions:
   contents: read
 jobs:
@@ -29,6 +30,9 @@ jobs:
           python3 tools/patch_cops_db_startup.py upstream-cops
           python3 tools/patch_cops_argon2id.py upstream-cops
           python3 tools/patch_cops_startup_gate.py upstream-cops
+          python3 tools/patch_cops_dmap_bounds.py upstream-cops
+          grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
+          grep -q '16000000ULL' upstream-cops/src/Map/mapdata.cpp
           git -C upstream-cops diff --check
       - name: Compile real COPS executable
         shell: bash
