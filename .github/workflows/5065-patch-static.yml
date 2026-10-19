@@ -1,0 +1,36 @@
+name: 5065 Patch Static Inspection
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/inspect_legacy_installer.py'
+      - 'tests/test_legacy_installer_inspection.py'
+      - '.github/workflows/5065-patch-static.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  static-inspection:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test nonexecuting PE inspector
+        run: python3 -m unittest discover -s tests -p test_legacy_installer_inspection.py -v
+      - name: Install 7-Zip listing utility
+        run: sudo apt-get update && sudo apt-get install -y p7zip-full
+      - name: Retrieve user-shared 5065 patch, no execution
+        shell: bash
+        run: |
+          set -euo pipefail
+          url="https://drive.google.com/uc?export=download&id=1ah7aefMzQ-QskmsxKxcxISjat5AwkXAQ"
+          if curl --fail --location --silent --show-error --max-time 45 --max-filesize 2000000 "$url" -o /tmp/5065.exe; then
+            if python3 tools/inspect_legacy_installer.py /tmp/5065.exe --output patch-5065-static.json; then
+              echo "PASS: valid PE header (not malware clearance)"
+            else
+              echo "WARNING: download did not yield a verifiable Windows PE executable"
+            fi
+          else
+            echo "WARNING: shared Drive download not available from CI runner"
+          fi
+          rm -f /tmp/5065.exe
