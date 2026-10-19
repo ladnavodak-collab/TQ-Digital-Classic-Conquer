@@ -1,0 +1,29 @@
+name: Archived 5065 Client Source Inventory
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/inventory_client_archive.py'
+      - '.github/workflows/client-5065-inventory.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  inventory:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Read only public Internet Archive metadata
+        run: python tools/inventory_client_archive.py
+      - name: Upload non-proprietary file listing only
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: public-5065-source-inventory
+          path: archive-client-inventory.json
+          if-no-files-found: ignore
+          retention-days: 7
