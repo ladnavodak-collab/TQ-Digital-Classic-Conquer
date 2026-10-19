@@ -27,7 +27,7 @@ def patch(root: Path):
             mHeight = (uint16_t)height;
         }""")
     replace_once(path,
-        """    mCells = new Cell[mWidth * mHeight];""",
+        """    mCells = new Cell[mWidth * mHeight];\n    for (uint16_t y = 0; ERROR_SUCCESS == err && y < mHeight; ++y)""",
         """    if (err != ERROR_SUCCESS)
         return err;
     mCells = new Cell[size_t(mWidth) * size_t(mHeight)];""")
@@ -41,7 +41,9 @@ def patch(root: Path):
         return ERROR_BAD_LENGTH;
     mPassages.reserve(size_t(count));""")
     replace_once(path,
-        """            if (posX < UINT16_MAX && posX < UINT16_MAX)""",
+        """            if (posX < UINT16_MAX && posX < UINT16_MAX)
+            {
+                passage->PosX = (uint16_t)posX;""",
         """            if (posX < mWidth && posY < mHeight)""")
     replace_once(path,
         """    LOG(INFO, "Found %d layers for the map.", count);
