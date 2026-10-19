@@ -18,7 +18,7 @@ class CharacterLoadPatchTests(unittest.TestCase):
             s=p.read_text()
             self.assertNotIn("SELECT * FROM",s)
             self.assertIn(", ".join("`%s`"%c for c in ORDERED_COLUMNS),s)
-            for check in ["uid == 0","cps != 0","rebirths > 1","mapId == 0"]:
+            for check in ["!Entity::isPlayer(uid)","cps != 0","rebirths > 1","mapId == 0"]:
                 self.assertLess(s.index(check),s.index("new Player(aClient, uid)"))
             self.assertIn('query.bindValue(":cps", 0);',s)
     def test_unknown_upstream_rejected(self):
