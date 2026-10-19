@@ -1,0 +1,5 @@
+Real COPS authenticated movement + persistence smoke
+
+The disposable localhost client authenticates again, redeems a game ticket, loads the existing level-1 Trojan, enters the original flat 16x16 synthetic map 1002 and sends an encrypted MsgWalk east (direction 6). It verifies the actual COPS MsgWalk echo before disconnecting. On disconnect the real COPS Client::save path is expected to store the player's new position 9,8 rather than the original 8,8. A separate MariaDB query waits for the saved position and confirms CP and rebirth remain zero. A subsequent authenticated map entry probe verifies the position is loaded from SQL on another login.
+
+This is a diagnostic synthetic map only. Not the retail 5065 client, rendered Twin City, or evidence of compatibility with commercial game assets. Do not expose development listeners publicly.
