@@ -23,7 +23,7 @@ def probe(attempts=3):
         # Server sends a Blowfish/DH login challenge on game-port connect.
         # Read only; do NOT guess crypto, transmit malformed packets, or claim authentication.
         with connect(GAME_PORT) as sock:
-            sock.settimeout(3)
+            sock.settimeout(8)  # Qt/COPS DH-prime generation can vary under CI load
             data=sock.recv(8192)
             if not data:
                 raise RuntimeError("game listener closed before sending exchange request")
