@@ -7,6 +7,9 @@ on:
       - 'docs/COPS-DATABASE-SMOKE.md'
       - 'tools/patch_cops_startup_gate.py'
       - 'tools/patch_cops_dmap_bounds.py'
+      - 'tools/make_synthetic_cops_dmap.py'
+      - 'tests/test_synthetic_cops_dmap.py'
+      - 'db/ci_loader_schema.sql'
 permissions:
   contents: read
 jobs:
@@ -15,6 +18,8 @@ jobs:
     timeout-minutes: 30
     steps:
       - uses: actions/checkout@v4
+      - name: Validate synthetic DMap fixture checksums
+        run: python3 -m unittest discover -s tests -p test_synthetic_cops_dmap.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
@@ -104,6 +109,51 @@ jobs:
           fi
           echo "PASS: incomplete world data fails before binding any game listeners"
           echo "INFO: no real login or client interaction was attempted"
+      - name: Probe COPS startup with original synthetic map 1002
+        shell: bash
+        run: |
+          set -euo pipefail
+          # This is an original testing-only grid, not official Twin City.
+          python3 tools/make_synthetic_cops_dmap.py startup-smoke
+          sudo mariadb tq_ci < db/ci_loader_schema.sql
+          sudo mariadb tq_ci -e "INSERT INTO \`map\` (id,doc_id,type,weather,portal_x,portal_y,reborn_map,reborn_portal,light) VALUES (1002,1002,0,0,0,0,1002,0,0)"
+          source "$RUNNER_TEMP/cops-ci.env"
+          export COPS_SQL_PASSWORD
+          cd startup-smoke
+          # Test *real* bound TCP endpoints, not buffered stdout.
+          stdbuf -oL -eL "./COPS v7 Emulator" > synthetic-attempt.log 2>&1 &
+          server_pid=$!
+          set +e
+          python3 - <<'PY'
+          import socket
+          import time
+          ports=(9958,5816)  # constants from upstream src/server.h
+          found=set()
+          deadline=time.monotonic()+10
+          while time.monotonic()<deadline and len(found)!=len(ports):
+              for port in ports:
+                  if port in found: continue
+                  try:
+                      with socket.create_connection(("127.0.0.1",port),timeout=0.2):
+                          found.add(port)
+                  except OSError: pass
+              if len(found)!=len(ports): time.sleep(0.25)
+          print("Synthetic map loopback TCP ports reachable:",sorted(found),flush=True)
+          if found!=set(ports):
+              raise SystemExit("FAIL: hardened COPS did not bind both loopback ports with the test map")
+          print("PASS: real COPS server bound both loopback TCP listeners with original synthetic map 1002",flush=True)
+          print("Not a 5065 client compatibility or gameplay assertion.",flush=True)
+          PY
+          probe_code=$?
+          set -e
+          kill "$server_pid" 2>/dev/null || true
+          wait "$server_pid" 2>/dev/null || true
+          if [ "$probe_code" -ne 0 ]; then
+            echo "Startup diagnostics (sanitized keywords):"
+            grep -Ei 'abort|error|failed|missing|Could not|not found|Loaded all|listening' synthetic-attempt.log | tail -n 25 || true
+            exit 1
+          fi
+
       - name: Remove disposable credential file
         if: always()
         shell: bash
@@ -118,5 +168,6 @@ jobs:
             cops-build.log
             startup-smoke/guard-output.log
             startup-smoke/database-attempt.log
+            startup-smoke/synthetic-attempt.log
           retention-days: 7
           if-no-files-found: ignore
