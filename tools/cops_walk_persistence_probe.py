@@ -20,9 +20,13 @@ from cops_world_entry_probe import receive_until,make_enter_map,decode_enter_map
 SEAL=b"TQClient"
 MSG_WALK=1005
 EAST=6
+# Original COPS Entity::isPlayer accepted range; not every uint32 is a player.
+PLAYER_UID_MIN=1000000
+PLAYER_UID_MAX=1999999999
 
 def walk_packet(uid,direction=EAST,mode=0):
-    if not 1<=uid<=0xffffffff:raise ValueError("invalid character UID")
+    if not PLAYER_UID_MIN<=uid<=PLAYER_UID_MAX:
+        raise ValueError("MsgWalk requires a UID from the real COPS player range")
     if direction not in range(8) or mode not in (0,1):
         raise ValueError("invalid classic walk direction or mode")
     return struct.pack("<HHIBBh",12,MSG_WALK,uid,direction,mode,0)+SEAL
