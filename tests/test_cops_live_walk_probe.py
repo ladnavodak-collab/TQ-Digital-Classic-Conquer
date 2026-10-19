@@ -1,6 +1,9 @@
 import struct
 import unittest
-from tools.cops_live_walk_probe import (
+import sys
+from pathlib import Path
+sys.path.insert(0,str(Path(__file__).resolve().parents[1]/'tools'))
+from cops_live_walk_probe import (
     EAST,CLIENT_SEAL,make_walk,verify_walk_frame,advance_cipher
 )
 class WalkPacketTests(unittest.TestCase):
