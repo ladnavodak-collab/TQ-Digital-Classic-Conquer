@@ -36,7 +36,9 @@ def rc5_password(payload):
     for a,b in struct.iter_unpack("<II",payload):
         left=(a+sub[0])&MASK
         right=(b+sub[1])&MASK
-        for r in range(1,12):
+        # Invert upstream RC5::decrypt, which iterates rounds 12 down to 1.
+        # Upstream RC5::encrypt incorrectly stops at 11; don't mimic that bug.
+        for r in range(1,13):
             left=(rotl(left^right,right)+sub[2*r])&MASK
             right=(rotl(right^left,left)+sub[2*r+1])&MASK
         result+=struct.pack("<II",left,right)
