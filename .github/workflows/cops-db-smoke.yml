@@ -172,6 +172,8 @@ jobs:
           # This is an original testing-only grid, not official Twin City.
           python3 tools/make_synthetic_cops_dmap.py startup-smoke
           sudo mariadb tq_ci < db/ci_loader_schema.sql
+          sudo mariadb tq_ci < db/ci_character_schema.sql
+          python3 tools/cops_account_success_probe.py seed sudo mariadb tq_ci
           sudo mariadb tq_ci -e "INSERT INTO \`map\` (id,doc_id,type,weather,portal_x,portal_y,reborn_map,reborn_portal,light) VALUES (1002,1002,0,0,0,0,1002,0,0)"
           source "$RUNNER_TEMP/cops-ci.env"
           export COPS_SQL_PASSWORD
@@ -200,6 +202,7 @@ jobs:
           fi
           python3 ../tools/cops_truncated_prelogin_probe.py
           python3 ../tools/cops_account_cipher_probe.py
+          python3 ../tools/cops_account_success_probe.py probe
           if ! kill -0 "$server_pid" 2>/dev/null; then
             echo "FAIL: COPS exited after truncated pre-login packets"
             exit 1
@@ -209,7 +212,6 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          sudo mariadb tq_ci < db/ci_character_schema.sql
           python3 tools/cops_character_sql_roundtrip.py sudo mariadb tq_ci
       - name: Remove disposable credential file
         if: always()
