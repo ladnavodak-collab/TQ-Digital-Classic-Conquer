@@ -1,4 +1,4 @@
-name: Private CI — C++ and Rust
+name: Private CI — Full Foundation
 on:
   push:
     branches: [main]
@@ -7,20 +7,31 @@ on:
 permissions:
   contents: read
 jobs:
-  cpp:
-    name: C++ / ${{ matrix.os }}
-    runs-on: ${{ matrix.os }}
-    strategy:
-      fail-fast: false
-      matrix:
-        os: [ubuntu-latest, windows-latest]
+  cpp-linux:
+    runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+      - name: Dependencies
+        run: sudo apt-get update && sudo apt-get install -y libsqlite3-dev
       - name: Configure
         run: cmake -S . -B build -DBUILD_TESTING=ON
       - name: Build
+        run: cmake --build build --parallel 2
+      - name: All tests
+        run: ctest --test-dir build --output-on-failure
+  cpp-windows:
+    runs-on: windows-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install SQLite
+        shell: pwsh
+        run: vcpkg install sqlite3:x64-windows
+      - name: Configure
+        shell: pwsh
+        run: cmake -S . -B build -DBUILD_TESTING=ON -DCMAKE_TOOLCHAIN_FILE="$env:VCPKG_INSTALLATION_ROOT/scripts/buildsystems/vcpkg.cmake" -DVCPKG_TARGET_TRIPLET=x64-windows
+      - name: Build
         run: cmake --build build --config Debug --parallel 2
-      - name: Run CTest
+      - name: All tests
         run: ctest --test-dir build -C Debug --output-on-failure
   rust:
     name: Rust / ${{ matrix.os }}
@@ -34,7 +45,8 @@ jobs:
         working-directory: rust-client
     steps:
       - uses: actions/checkout@v4
-      - name: Install stable Rust
-        uses: dtolnay/rust-toolchain@stable
-      - name: Test
+      - uses: dtolnay/rust-toolchain@stable
+      - name: Rust unit tests
         run: cargo test --all-targets
+      - name: Rust settings CLI
+        run: cargo check --bin tq-classic-client-foundation

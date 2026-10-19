@@ -1,7 +1,0 @@
-[package]
-name = "tq-classic-ci-bootstrap"
-version = "0.1.0"
-edition = "2021"
-license = "MIT"
-[lib]
-path = "src/lib.rs"
