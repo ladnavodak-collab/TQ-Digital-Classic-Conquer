@@ -19,3 +19,9 @@ A real playable build still needs a vetted database migration, legitimate client
 The source-level startup gate now requires `MapManager::getMap(1002)` to return a loaded map **after** SQL/world loader success and **before** either listener binds. This closes a false-ready case where the `map` query returns zero rows but reports success. The check depends on the real game map, which must be registered from database map rows and a valid `GameMap.ini`/DMap mapping. It does **not** generate terrain, bypass missing assets, or prove gameplay.
 
 The fail-closed check uses `ERROR_NOT_FOUND` and logs `Twin City map 1002 is not loaded`. The source patch test verifies the guard precedes both listener setup calls; upstream source and Qt compilation remain CI dependent.
+
+## Integrated hardened COPS build
+
+The database smoke workflow now also applies `tools/patch_cops_dmap_bounds.py` after the existing security patches and Twin City startup gate. It verifies the two guards exist in the upstream source before compiling the real COPS executable. This prevents testing one build variant while shipping incompatible individual hardening patches.
+
+A green smoke test **does not** prove 1002 map loading: the disposable CI database and map assets are intentionally incomplete, so expected startup behavior is refusal to listen. Real map geometry, approved assets, character login and world-entry checks remain outstanding.
