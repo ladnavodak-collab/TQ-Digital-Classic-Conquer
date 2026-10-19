@@ -1,0 +1,78 @@
+name: COPS Argon2id authentication build
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/patch_cops_argon2id.py'
+      - 'docs/COPS-ARGON2ID-AUTH.md'
+      - '.github/workflows/cops-argon2id-build.yml'
+permissions:
+  contents: read
+jobs:
+  login-hash-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt5 and libsodium
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev
+      - name: Compile and test Argon2id verification
+        shell: bash
+        run: |
+          cat > /tmp/argon2test.cpp <<'CPP'
+          #include <sodium.h>
+          #include <cstring>
+          #include <cassert>
+          int main() {
+            assert(sodium_init() >= 0);
+            char encoded[crypto_pwhash_STRBYTES];
+            const char* password = "example_only_not_a_real_password";
+            assert(crypto_pwhash_str_alg(encoded, password, std::strlen(password),
+                crypto_pwhash_OPSLIMIT_INTERACTIVE,
+                crypto_pwhash_MEMLIMIT_INTERACTIVE,
+                crypto_pwhash_ALG_ARGON2ID13) == 0);
+            assert(crypto_pwhash_str_verify(encoded, password, std::strlen(password)) == 0);
+            const char* wrong = "not_the_password";
+            assert(crypto_pwhash_str_verify(encoded, wrong, std::strlen(wrong)) != 0);
+            assert(crypto_pwhash_str_verify("plain_password",password,std::strlen(password)) != 0);
+          }
+          CPP
+          c++ -std=c++17 /tmp/argon2test.cpp -lsodium -o /tmp/argon2test
+          /tmp/argon2test
+      - name: Apply patches in a temporary checkout
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD | tee upstream-commit.txt
+          python3 tools/patch_cops_bounds.py upstream-cops
+          python3 tools/patch_cops_dh_validation.py upstream-cops
+          python3 tools/patch_cops_db_startup.py upstream-cops
+          python3 tools/patch_cops_argon2id.py upstream-cops
+          git -C upstream-cops diff --check
+          python3 - <<'PY'
+          from pathlib import Path
+          s=Path("upstream-cops/src/Database/database.cpp").read_text()
+          assert 'crypto_pwhash_str_verify' in s
+          assert 'password.compare(aPassword)' not in s
+          assert 'sodium_init()' in s
+          PY
+      - name: Compile real COPS
+        shell: bash
+        run: |
+          set -o pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          make -j2 2>&1 | tee ../build.log
+      - name: Upload diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cops-argon2id-build
+          path: |
+            upstream-commit.txt
+            build.log
+          retention-days: 7
+          if-no-files-found: ignore
