@@ -27,6 +27,24 @@ def patch(root: Path):
     }
 
     fprintf(stdout, "\\n");''')
+    # The SQL loader can successfully return zero rows; a server without map
+    # 1002 is not ready for classic game-client world entry.
+    replace_one(server,
+        '''    fprintf(stdout, "\\n");
+
+    mAccServer.listen(Server::ACCSERVER_PORT);''',
+        '''    // A successful query does not mean the starter city exists.
+    // Require both SQL map registration and its associated loaded DMap.
+    if (mgr.getMap(1002) == nullptr)
+    {
+        fprintf(stderr, "COPS startup aborted: Twin City map 1002 is not loaded.\\n");
+        LOG(ERROR, "COPS startup aborted: Twin City map 1002 is not loaded.");
+        return ERROR_NOT_FOUND;
+    }
+
+    fprintf(stdout, "\\n");
+
+    mAccServer.listen(Server::ACCSERVER_PORT);''')
     replace_one(server,
         '''    mAccServer.listen(Server::ACCSERVER_PORT);''',
         '''    if (!mAccServer.listen(Server::ACCSERVER_PORT))
