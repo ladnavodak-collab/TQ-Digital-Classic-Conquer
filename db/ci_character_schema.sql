@@ -1,5 +1,7 @@
 -- Disposable test-only account/character fixtures, never production deployment.
--- IMPORTANT: COPS Player::SQLDATA_* uses SELECT * ordinal positions.
+-- IMPORTANT: COPS Player::SQLDATA_* uses fixed ordinal positions.
+-- Character IDs must be within COPS Entity::PLAYERID_FIRST..PLAYERID_LAST.
+-- IDs below 1,000,000 are classified as non-player and can crash movement.
 CREATE TABLE `account` (
   `id` INT UNSIGNED NOT NULL PRIMARY KEY,
   `name` VARCHAR(32) NOT NULL UNIQUE,
@@ -39,7 +41,7 @@ CREATE TABLE `user` (
   UNIQUE KEY `unique_character_name` (`name`),
   CONSTRAINT `test_classic_no_cps` CHECK (`cps` = 0),
   CONSTRAINT `test_classic_single_rebirth` CHECK (`metempsychosis` <= 1)
-) ENGINE=InnoDB;
+) ENGINE=InnoDB AUTO_INCREMENT=1000000;
 CREATE TABLE `item` (`id` INT UNSIGNED NOT NULL PRIMARY KEY,`player_id` INT UNSIGNED NOT NULL);
 CREATE TABLE `weaponskill` (`id` INT UNSIGNED NOT NULL PRIMARY KEY,`owner_id` INT UNSIGNED NOT NULL);
 CREATE TABLE `magic` (`id` INT UNSIGNED NOT NULL PRIMARY KEY,`owner_id` INT UNSIGNED NOT NULL);
