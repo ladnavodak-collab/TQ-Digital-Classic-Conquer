@@ -11,6 +11,8 @@ on:
       - 'tests/test_synthetic_cops_dmap.py'
       - 'tools/cops_loopback_session_probe.py'
       - 'tools/patch_cops_receive_cleanup.py'
+      - 'tools/patch_cops_account_fields.py'
+      - 'tests/test_cops_account_fields.py'
       - 'tests/test_cops_receive_cleanup.py'
       - 'tools/cops_truncated_prelogin_probe.py'
       - 'tests/test_cops_loopback_session_probe.py'
@@ -29,6 +31,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_cops_loopback_session_probe.py -v
       - name: Unit-test truncated receive cleanup
         run: python3 -m unittest discover -s tests -p test_cops_receive_cleanup.py -v
+      - name: Validate bounded account packet fields
+        run: python3 -m unittest discover -s tests -p test_cops_account_fields.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
@@ -46,6 +50,7 @@ jobs:
           python3 tools/patch_cops_startup_gate.py upstream-cops
           python3 tools/patch_cops_dmap_bounds.py upstream-cops
           python3 tools/patch_cops_receive_cleanup.py upstream-cops
+          python3 tools/patch_cops_account_fields.py upstream-cops
           grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
           grep -q '16000000ULL' upstream-cops/src/Map/mapdata.cpp
           git -C upstream-cops diff --check
