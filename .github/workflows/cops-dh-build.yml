@@ -1,0 +1,46 @@
+name: COPS DH payload bounds build
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/patch_cops_dh_validation.py'
+      - '.github/workflows/cops-dh-build.yml'
+      - 'docs/COPS-DH-VALIDATION.md'
+permissions:
+  contents: read
+jobs:
+  patched-dh:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Qt5 dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential git qtbase5-dev qt5-qmake libqt5sql5-mysql
+      - name: Checkout and apply defensive patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD | tee upstream-commit.txt
+          python3 tools/patch_cops_bounds.py upstream-cops
+          python3 tools/patch_cops_dh_validation.py upstream-cops
+          git -C upstream-cops diff --check
+      - name: Build patched upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          make -j2 2>&1 | tee ../dh-patched-build.log
+      - name: Save diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cops-dh-patched-build
+          path: |
+            upstream-commit.txt
+            dh-patched-build.log
+          retention-days: 7
+          if-no-files-found: ignore
