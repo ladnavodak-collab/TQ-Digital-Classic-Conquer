@@ -90,6 +90,11 @@ def check_database(cli):
                           text=True,capture_output=True)
     if result.returncode:
         raise RuntimeError("failed querying character registration SQL: "+result.stderr[-200:])
+    uid_result=subprocess.run(cli+["--batch","--skip-column-names","--execute",
+                                  "SELECT `id` FROM `user` WHERE `account_id`=78"],
+                              capture_output=True,text=True)
+    if uid_result.returncode or not uid_result.stdout.strip().isdigit() or not (1000000 <= int(uid_result.stdout.strip()) <= 1999999999):
+        raise RuntimeError("COPS created a character with an invalid player UID range")
     expected="78\tAlphaTester\t10\t4\t5\t6\t7\t192\t35\t1002\t8\t8\t0\t0"
     if result.stdout.strip()!=expected:
         raise RuntimeError("character was not persisted by COPS with expected classic stats: "+repr(result.stdout.strip()))
