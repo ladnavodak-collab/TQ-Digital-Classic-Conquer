@@ -24,3 +24,12 @@ Find `GameMap.dat`, `GameMap.ini`, `*.DMap`, scene resources and original minima
 Run `python tools/twin_city_preflight.py content/twin_city/twin_city_reimagined_v1.json --gamemap-ini <path> --asset-root <root>` once the actual map files are present. This only validates the local header and a map reference; full rendering/collision tests are still necessary. The concept image cannot become geometry without tile/scene creation.
 
 Before running any unknown binary, antivirus scan, inspect certificate provenance, and isolate experimental analysis on a disposable test machine.
+
+
+## Verified 5065.exe binary findings (2026-10-19)
+
+The user-supplied 5065.exe was read directly from the connected Google Drive, without execution, and inspected in memory. The file is 715,595 bytes. The DOS/PE magic is valid, its PE machine value is 0x014c (32-bit x86), and PE resource strings explicitly identify a **WinRAR SFX**. A RAR4 archive begins at byte offset 103424. Its entry headers were parsed read-only, without executing or unpacking payloads.
+
+There are **172 archive entries** including 32 .c3 effects, 88 .dds textures, 50 directory entries, one .dat and one .htm file. The records include interface/gear effects. The only filename matches to "Map" were a `data\\MapItemIcon` directory and icon texture; **no .DMap or GameMap.ini entries exist in this patch payload**. It is not a Twin City geometry provider. Header enumeration does not imply safety, authenticity or compatibility.
+
+Next: inspect the larger 5039 installer to locate its bundled map resources; do not publish proprietary assets or run the SFX. The CI downloader is supplementary and must not be taken as a client playability test.
