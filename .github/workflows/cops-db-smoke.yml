@@ -14,6 +14,8 @@ on:
       - 'tools/cops_loopback_session_probe.py'
       - 'tools/cops_account_cipher_probe.py'
       - 'tools/cops_account_success_probe.py'
+      - 'tools/cops_game_dh_proof_probe.py'
+      - 'tests/test_cops_game_dh_proof_probe.py'
       - 'tools/cops_game_challenge_probe.py'
       - 'tests/test_cops_game_challenge_probe.py'
       - 'tests/cops_game_challenge_decrypt.cpp'
@@ -76,6 +78,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_cops_game_challenge_probe.py -v
       - name: Validate DH degenerate-key rejection patch
         run: python3 -m unittest discover -s tests -p test_cops_dh_trivial_keys.py -v
+      - name: Validate Blowfish CFB64 and game proof parser
+        run: python3 -m unittest discover -s tests -p test_cops_game_dh_proof_probe.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
@@ -222,6 +226,7 @@ jobs:
           python3 ../tools/cops_truncated_prelogin_probe.py
           python3 ../tools/cops_account_cipher_probe.py
           python3 ../tools/cops_account_success_probe.py probe
+          python3 ../tools/cops_game_dh_proof_probe.py
           python3 ../tools/cops_game_challenge_probe.py ../cops-challenge-decode
           python3 ../tools/cops_game_dh_probe.py
           if ! kill -0 "$server_pid" 2>/dev/null; then
