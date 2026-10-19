@@ -1,0 +1,45 @@
+name: COPS patched receive build
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/patch_cops_bounds.py'
+      - 'docs/COPS-RECEIVE-BOUNDS.md'
+      - '.github/workflows/cops-receive-build.yml'
+permissions:
+  contents: read
+jobs:
+  patched-qt5:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt5 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential git qtbase5-dev qt5-qmake libqt5sql5-mysql
+      - name: Fetch unmodified COPS and apply receive patch
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD | tee upstream-commit.txt
+          python3 tools/patch_cops_bounds.py upstream-cops
+          git -C upstream-cops diff --check
+      - name: Compile patched COPS
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          make -j2 2>&1 | tee ../cops-build.log
+      - name: Upload build diagnostic
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cops-receive-bounds-build
+          path: |
+            upstream-commit.txt
+            cops-build.log
+          retention-days: 7
+          if-no-files-found: ignore
