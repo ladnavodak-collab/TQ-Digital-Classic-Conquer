@@ -38,6 +38,8 @@ class DMapBoundsPatchTests(unittest.TestCase):
                              "new Cell[size_t(mWidth) * size_t(mHeight)]"):
                 self.assertIn(expected,result)
             self.assertIn("#include <stdint.h>",result)
+            self.assertIn("for (uint16_t y = 0; ERROR_SUCCESS == err && y < mHeight; ++y)",result)
+            self.assertIn("passage->PosX = (uint16_t)posX;",result)
     def test_upstream_drift_fails_closed(self):
         with tempfile.TemporaryDirectory() as d:
             target=Path(d)/"src/Map/mapdata.cpp"
