@@ -54,19 +54,26 @@ def decode_structure(data):
             "g":g.decode(),"a_hex_len":len(a)}
 
 def probe(helper):
-    with socket.create_connection(("127.0.0.1",PORT),timeout=3) as sock:
-        sock.settimeout(2)
-        ciphertext=bytearray()
-        while len(ciphertext)<MAX_CHALLENGE:
-            try:
-                chunk=sock.recv(MAX_CHALLENGE-len(ciphertext))
-            except socket.timeout:
-                break
-            if not chunk:break
-            ciphertext.extend(chunk)
-            # Original server emits challenge in one write; allow further
-            # fragments, then the 2-second idle timeout will end this read.
-    if not ciphertext:raise RuntimeError("COPS did not emit game handshake")
+    # The Qt accept/read lifecycle can produce an empty diagnostic socket.
+    # Retry fresh connections rather than accepting an empty DH challenge.
+    ciphertext=bytearray()
+    for attempt in range(3):
+        ciphertext.clear()
+        with socket.create_connection(("127.0.0.1",PORT),timeout=3) as sock:
+            sock.settimeout(2)
+            while len(ciphertext)<MAX_CHALLENGE:
+                try:
+                    chunk=sock.recv(MAX_CHALLENGE-len(ciphertext))
+                except socket.timeout:
+                    break
+                if not chunk:break
+                ciphertext.extend(chunk)
+        if ciphertext:
+            break
+        if attempt<2:
+            import time
+            time.sleep(0.25)
+    if not ciphertext:raise RuntimeError("COPS did not emit game handshake after 3 fresh connections")
     done=subprocess.run([helper],input=bytes(ciphertext),capture_output=True,check=True)
     data=decode_structure(done.stdout)
     print("PASS: real COPS Blowfish game challenge decrypted and validated",data,flush=True)
