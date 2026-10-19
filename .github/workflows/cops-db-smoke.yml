@@ -108,7 +108,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          g++ -std=c++11 -Iupstream-cops/src -Iupstream-cops/src/Security/Cryptography             tests/cops_game_challenge_decrypt.cpp             upstream-cops/src/Security/Cryptography/blowfish.cpp             -o cops-challenge-decode
+          g++ -std=c++11 -Iupstream-cops/src -Iupstream-cops/src/Common -Iupstream-cops/src/Security/Cryptography             tests/cops_game_challenge_decrypt.cpp             upstream-cops/src/Security/Cryptography/blowfish.cpp             -o cops-challenge-decode
       - name: Compile real COPS executable
         shell: bash
         run: |
