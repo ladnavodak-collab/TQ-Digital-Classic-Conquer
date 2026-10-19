@@ -12,6 +12,9 @@ on:
       - 'tools/cops_loopback_session_probe.py'
       - 'tools/patch_cops_receive_cleanup.py'
       - 'tools/patch_cops_account_fields.py'
+      - 'tools/patch_cops_transfer_tickets.py'
+      - 'tests/test_cops_transfer_tickets.py'
+      - 'tests/cops_transfer_tickets_qt.cpp'
       - 'tests/test_cops_account_fields.py'
       - 'tests/test_cops_receive_cleanup.py'
       - 'tools/cops_truncated_prelogin_probe.py'
@@ -33,6 +36,8 @@ jobs:
         run: python3 -m unittest discover -s tests -p test_cops_receive_cleanup.py -v
       - name: Validate bounded account packet fields
         run: python3 -m unittest discover -s tests -p test_cops_account_fields.py -v
+      - name: Unit-test transfer ticket patch anchors
+        run: python3 -m unittest discover -s tests -p test_cops_transfer_tickets.py -v
       - name: Install server dependencies
         run: |
           sudo apt-get update
@@ -51,9 +56,17 @@ jobs:
           python3 tools/patch_cops_dmap_bounds.py upstream-cops
           python3 tools/patch_cops_receive_cleanup.py upstream-cops
           python3 tools/patch_cops_account_fields.py upstream-cops
+          python3 tools/patch_cops_transfer_tickets.py upstream-cops
+          grep -q 'TransferTickets::instance().consume' upstream-cops/src/Network/msgconnect.cpp
           grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
           grep -q '16000000ULL' upstream-cops/src/Map/mapdata.cpp
           git -C upstream-cops diff --check
+      - name: Test real QtCore token issue, consume, replay and invalidation
+        shell: bash
+        run: |
+          set -euo pipefail
+          g++ -std=c++11 -fPIC -no-pie $(pkg-config --cflags Qt5Core) -Iupstream-cops/src/Network tests/cops_transfer_tickets_qt.cpp -o transfer-ticket-test $(pkg-config --libs Qt5Core)
+          ./transfer-ticket-test
       - name: Compile real COPS executable
         shell: bash
         run: |
