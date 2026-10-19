@@ -1,0 +1,5 @@
+Live COPS classic character registration (synthetic CI only)
+
+The test adds a minimal temporary MariaDB point_allot table with level-one Trojan stats. After the existing verified account login and game-port DH ticket redemption, a temporary Python protocol client continues the same Blowfish CFB64 stream to send a 60-byte MsgRegister packet and reads the encrypted MsgTalk response. A separate SQL assertion then verifies that the **real COPS Database::createPlayer** routine stored AlphaTester (Trojan class 10), strength 4, agility 5, vitality 6, spirit 7, resulting HP 192 and mana 35, map 1002 coordinates 8,8 and no CP/rebirth. This is a meaningful server integration test, not just direct SQL INSERT from Python.
+
+Important limits: It does not verify a graphical retail 5065 client, Twin City's proprietary map, moving the created character, relog world entry, inventory or quests. The upstream COPS handshake still requires coalescing two protocol frames into a single TCP receive; full stream reassembly remains a critical blocker. Never expose the test server publicly.
