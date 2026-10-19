@@ -280,7 +280,11 @@ jobs:
           source "$RUNNER_TEMP/cops-ci.env"
           export COPS_SQL_PASSWORD
           cd startup-smoke
-          stdbuf -oL -eL "./COPS v7 Emulator" > walk-attempt.log 2>&1 &
+          # Diagnostic debugger wrapper: if original COPS faults, obtain a
+          # native stack trace rather than guessing at the movement crash.
+          ulimit -c unlimited
+          gdb -q --batch -ex "set pagination off" -ex "run" \
+            -ex "thread apply all bt 16" --args "./COPS v7 Emulator" > walk-attempt.log 2>&1 &
           server_pid=$!
           cleanup() {
             kill "$server_pid" 2>/dev/null || true
@@ -299,7 +303,6 @@ jobs:
                       raise RuntimeError("COPS account listener not ready for walk smoke")
                   time.sleep(.2)
           PY
-          ulimit -c unlimited
           if ! python3 ../tools/cops_live_walk_probe.py walk; then
             echo "COPS movement crash diagnostics (bounded tail):"
             tail -n 65 walk-attempt.log || true
