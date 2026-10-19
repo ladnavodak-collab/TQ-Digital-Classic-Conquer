@@ -1,0 +1,3 @@
+COPS game-port DH degenerate key rejection
+
+The real COPS MsgLoginChallengeS handler accepts a client-supplied hexadecimal DH public B value. A value of 0 or 1 (including leading-zero encodings) leads to a predictable shared secret. This patch rejects those values before exponentiation, closing a critical trivial-key case. Existing upstream validation already checks payload lengths and hex characters. These checks are still NOT comprehensive cryptographic validation: values outside the field modulus, subgroup membership and legacy DH interoperability require further work, and the development server must remain on loopback. No game-port authentication or playable client login is claimed.
