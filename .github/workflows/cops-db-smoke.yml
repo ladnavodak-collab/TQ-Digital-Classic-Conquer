@@ -112,7 +112,7 @@ jobs:
       - name: Install server dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client
+          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client gdb
       - name: Check out and harden upstream
         shell: bash
         run: |
@@ -299,7 +299,19 @@ jobs:
                       raise RuntimeError("COPS account listener not ready for walk smoke")
                   time.sleep(.2)
           PY
-          python3 ../tools/cops_live_walk_probe.py walk
+          ulimit -c unlimited
+          if ! python3 ../tools/cops_live_walk_probe.py walk; then
+            echo "COPS movement crash diagnostics (bounded tail):"
+            tail -n 65 walk-attempt.log || true
+            for crash in core core.*; do
+              if [ -f "$crash" ]; then
+                echo "Native COPS stack trace:"
+                gdb -q --batch -ex "thread apply all bt 12" "./COPS v7 Emulator" "$crash" 2>&1 | tail -n 100 || true
+                break
+              fi
+            done
+            exit 1
+          fi
           if ! kill -0 "$server_pid" 2>/dev/null; then
             echo "FAIL: real COPS exited during walking"
             exit 1
