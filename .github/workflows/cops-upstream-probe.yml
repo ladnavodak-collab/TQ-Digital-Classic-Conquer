@@ -1,0 +1,52 @@
+name: COPS v7 upstream build probe
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/cops-upstream-probe.yml'
+      - 'docs/COPS-BUILD-PROBE.md'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  upstream-linux:
+    name: Unmodified COPS v7 / Qt5 / Ubuntu
+    runs-on: ubuntu-24.04
+    timeout-minutes: 20
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install Qt5 and compiler
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends build-essential git qtbase5-dev qt5-qmake libqt5sql5-mysql
+      - name: Checkout upstream without distributing its assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD | tee upstream-commit.txt
+          test -f "upstream-cops/COPS v7 Emulator.pro"
+          test -f upstream-cops/LICENSE
+      - name: Configure original Qt project
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release 2>&1 | tee ../configure.log
+      - name: Build original upstream
+        shell: bash
+        run: |
+          set -o pipefail
+          cd upstream-cops
+          make -j2 2>&1 | tee ../build.log
+      - name: Archive diagnostics even on failure
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cops-v7-upstream-build-diagnostics
+          path: |
+            upstream-commit.txt
+            configure.log
+            build.log
+          retention-days: 7
+          if-no-files-found: ignore
