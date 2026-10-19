@@ -1,0 +1,27 @@
+name: Twin City Rework Content Contract
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'content/twin_city/**'
+      - 'tools/twin_city_preflight.py'
+      - 'tests/test_twin_city_preflight.py'
+      - '.github/workflows/twin-city-content.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  content-contract:
+    strategy:
+      matrix:
+        os: [ubuntu-latest, windows-latest]
+    runs-on: ${{ matrix.os }}
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Validate Twin City content and test fixtures
+        run: python -m unittest discover -s tests -p test_twin_city_preflight.py -v
+      - name: Validate proposed content manifest
+        run: python tools/twin_city_preflight.py content/twin_city/twin_city_reimagined_v1.json
