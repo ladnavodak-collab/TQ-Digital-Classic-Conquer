@@ -120,19 +120,40 @@ jobs:
           source "$RUNNER_TEMP/cops-ci.env"
           export COPS_SQL_PASSWORD
           cd startup-smoke
+          # Test *real* bound TCP endpoints, not buffered stdout.
+          stdbuf -oL -eL "./COPS v7 Emulator" > synthetic-attempt.log 2>&1 &
+          server_pid=$!
           set +e
-          timeout 12s "./COPS v7 Emulator" > synthetic-attempt.log 2>&1
-          code=$?
+          python3 - <<'PY'
+          import socket
+          import time
+          ports=(9958,5816)  # constants from upstream src/server.h
+          found=set()
+          deadline=time.monotonic()+10
+          while time.monotonic()<deadline and len(found)!=len(ports):
+              for port in ports:
+                  if port in found: continue
+                  try:
+                      with socket.create_connection(("127.0.0.1",port),timeout=0.2):
+                          found.add(port)
+                  except OSError: pass
+              if len(found)!=len(ports): time.sleep(0.25)
+          print("Synthetic map loopback TCP ports reachable:",sorted(found),flush=True)
+          if found!=set(ports):
+              raise SystemExit("FAIL: hardened COPS did not bind both loopback ports with the test map")
+          print("PASS: real COPS server bound both loopback TCP listeners with original synthetic map 1002",flush=True)
+          print("Not a 5065 client compatibility or gameplay assertion.",flush=True)
+          PY
+          probe_code=$?
           set -e
-          echo "Synthetic map startup exit code: $code"
-          if grep -q 'AccServer listening' synthetic-attempt.log && grep -q 'MsgServer listening' synthetic-attempt.log; then
-            echo "PASS: both loopback listeners announced with synthetic map 1002"
-            echo 'This is a DIAGNOSTIC boot, not client login or gameplay.'
-          else
-            echo 'DIAGNOSTIC: synthetic map not sufficient for full COPS server startup'
-            # Emphasize the observed error without printing secret-bearing logs.
-            grep -Ei 'abort|error|failed|missing|Could not|not found' synthetic-attempt.log | tail -n 20 || true
+          kill "$server_pid" 2>/dev/null || true
+          wait "$server_pid" 2>/dev/null || true
+          if [ "$probe_code" -ne 0 ]; then
+            echo "Startup diagnostics (sanitized keywords):"
+            grep -Ei 'abort|error|failed|missing|Could not|not found|Loaded all|listening' synthetic-attempt.log | tail -n 25 || true
+            exit 1
           fi
+
       - name: Remove disposable credential file
         if: always()
         shell: bash
