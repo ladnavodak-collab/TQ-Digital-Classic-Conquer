@@ -1,0 +1,26 @@
+name: COPS Twin City Startup Gate
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/patch_cops_startup_gate.py'
+      - 'tests/test_cops_twin_city_startup.py'
+      - '.github/workflows/cops-twin-city-gate.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  startup-source-test:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - name: Test source patch guards
+        run: python3 -m unittest discover -s tests -p test_cops_twin_city_startup.py -v
+      - name: Match real upstream server source
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          python3 tools/patch_cops_startup_gate.py upstream-cops
+          grep -q 'mgr.getMap(1002) == nullptr' upstream-cops/src/server.cpp
+          git -C upstream-cops diff --check
