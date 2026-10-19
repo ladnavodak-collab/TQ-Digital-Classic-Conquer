@@ -54,7 +54,8 @@ def probe():
         sock.sendall(wire)
         try:
             received=sock.recv(256)
-        except ConnectionResetError:
+        except (ConnectionResetError, socket.timeout):
+            # Quiet discard of a bad login is a valid fail-closed response.
             received=b""
         if received:
             raise RuntimeError("Malformed account packet unexpectedly generated a response")
