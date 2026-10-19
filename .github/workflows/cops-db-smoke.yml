@@ -104,7 +104,7 @@ jobs:
       - name: Install server dependencies
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client
+          sudo apt-get install -y --no-install-recommends gdb git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client
       - name: Check out and harden upstream
         shell: bash
         run: |
@@ -225,6 +225,7 @@ jobs:
           cd startup-smoke
           # Start COPS in the background. The Python probe checks the actual
           # TCP connection lifecycle and observes the pre-login game handshake.
+          ulimit -c unlimited
           stdbuf -oL -eL "./COPS v7 Emulator" > synthetic-attempt.log 2>&1 &
           server_pid=$!
           cleanup() {
@@ -253,7 +254,21 @@ jobs:
           python3 ../tools/cops_live_character_register.py register
           python3 ../tools/cops_existing_character_relogin.py
           python3 ../tools/cops_world_entry_probe.py
+          set +e
           python3 ../tools/cops_walk_persistence_probe.py move
+          walk_code=$?
+          set -e
+          if [ "$walk_code" -ne 0 ]; then
+            echo "Walk diagnostic: game server failed while processing authenticated movement"
+            grep -Ei 'segmentation|assert|fatal|error|failed' synthetic-attempt.log | tail -n 25 || true
+            echo "CI core pattern: $(cat /proc/sys/kernel/core_pattern)"
+            for crash_core in core core.*; do
+              if [ -f "$crash_core" ]; then
+                gdb --batch -ex 'set pagination off' -ex 'thread apply all bt 14' "./COPS v7 Emulator" "$crash_core" 2>&1 | tail -n 130 || true
+              fi
+            done
+            exit "$walk_code"
+          fi
           python3 ../tools/cops_walk_persistence_probe.py check-db sudo mariadb tq_ci
           python3 ../tools/cops_world_entry_probe.py --expected-x 9 --expected-y 8
           python3 ../tools/cops_game_challenge_probe.py ../cops-challenge-decode
