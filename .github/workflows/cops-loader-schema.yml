@@ -1,0 +1,46 @@
+name: COPS Loader Schema Contract
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'db/ci_loader_schema.sql'
+      - 'tools/cops_schema_contract.py'
+      - 'tests/test_cops_schema_contract.py'
+      - '.github/workflows/cops-loader-schema.yml'
+permissions:
+  contents: read
+jobs:
+  schema-contract:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+      - name: Validate extractor unit tests
+        run: python3 -m unittest discover -s tests -p test_cops_schema_contract.py -v
+      - name: Match actual COPS loader queries
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD
+          python3 tools/cops_schema_contract.py upstream-cops/src/Database/database.cpp db/ci_loader_schema.sql
+      - name: Install and start disposable MariaDB
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo apt-get update
+          sudo apt-get install -y mariadb-server mariadb-client
+          sudo systemctl start mariadb
+          sudo mariadb -e 'CREATE DATABASE tq_loader_ci'
+          sudo mariadb tq_loader_ci < db/ci_loader_schema.sql
+      - name: Run every startup table query in the empty database
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo mariadb tq_loader_ci -e 'SELECT `id`, `doc_id`, `type`, `weather`, `portal_x`, `portal_y`, `reborn_map`, `reborn_portal`, `light` FROM `map`'
+          for table in itemtype npc monstertype generator magictype; do
+            sudo mariadb tq_loader_ci -e "SELECT * FROM \`$table\`"
+          done
+          count="$(sudo mariadb --batch --skip-column-names tq_loader_ci -e 'SELECT COUNT(*) FROM `map`')"
+          test "$count" -eq 0
+          echo 'PASS: startup SQL queries execute; map table is intentionally empty and server is NOT playable'
