@@ -37,8 +37,8 @@ def crypto_library():
 
 def transform(data,key=INITIAL_KEY,iv=bytes(8),encrypt=False):
     """One fresh Blowfish CFB64 stream (OpenSSL wire interoperability only)."""
-    if not key or len(key)>56:
-        raise ValueError("OpenSSL Blowfish supports keys of 1..56 bytes")
+    if not key or len(key)>72:
+        raise ValueError("Legacy COPS Blowfish supports keys of 1..72 bytes")
     if len(iv)!=8:
         raise ValueError("Blowfish IV must contain exactly 8 bytes")
     if not data:
