@@ -8,7 +8,7 @@ def run():
     for port in (9958,5816):
         for _ in range(3):
             with connect(port) as sock:
-                sock.settimeout(2)
+                sock.settimeout(8)  # Wait for fresh game DH proof on slower CI runners
                 if port==5816:
                     if not sock.recv(4096):
                         raise RuntimeError("No initial game prelogin challenge")
