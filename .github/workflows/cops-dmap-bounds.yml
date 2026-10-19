@@ -1,0 +1,43 @@
+name: Harden COPS DMap Parser
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - 'tools/patch_cops_dmap_bounds.py'
+      - 'tests/test_cops_dmap_bounds.py'
+      - '.github/workflows/cops-dmap-bounds.yml'
+  workflow_dispatch:
+permissions:
+  contents: read
+jobs:
+  patch-and-build:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@v4
+      - name: Run source patch regression tests
+        run: python3 -m unittest discover -s tests -p test_cops_dmap_bounds.py -v
+      - name: Install COPS Qt5 build dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev
+      - name: Apply all upstream safety patches
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          python3 tools/patch_cops_bounds.py upstream-cops
+          python3 tools/patch_cops_dh_validation.py upstream-cops
+          python3 tools/patch_cops_db_startup.py upstream-cops
+          python3 tools/patch_cops_argon2id.py upstream-cops
+          python3 tools/patch_cops_startup_gate.py upstream-cops
+          python3 tools/patch_cops_dmap_bounds.py upstream-cops
+          git -C upstream-cops diff --check
+      - name: Compile patched COPS server
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          make -j2 > ../cops-dmap-build.log 2>&1 || { tail -n 100 ../cops-dmap-build.log; exit 1; }
+          test -x "./COPS v7 Emulator"
