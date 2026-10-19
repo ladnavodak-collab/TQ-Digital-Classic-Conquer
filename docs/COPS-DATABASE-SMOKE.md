@@ -13,3 +13,9 @@ It then creates a throwaway MariaDB instance with a restricted game application 
 The empty database does **not** include the original 5065 schema, game maps, `GameMap.ini`, or official game content. COPS attempts `loadAllMaps`, `loadAllItems`, `loadAllNPCs`, `loadAllMonsters`, `loadAllGenerators`, and `loadAllMagics`; therefore this is deliberately *not* an end-to-end server startup or client login test.
 
 A real playable build still needs a vetted database migration, legitimate client/map resources, cipher-accurate encrypted TCP stream reassembly, real login and character persistence tests. Keep listeners inaccessible to public networks.
+
+## Mandatory starter city check
+
+The source-level startup gate now requires `MapManager::getMap(1002)` to return a loaded map **after** SQL/world loader success and **before** either listener binds. This closes a false-ready case where the `map` query returns zero rows but reports success. The check depends on the real game map, which must be registered from database map rows and a valid `GameMap.ini`/DMap mapping. It does **not** generate terrain, bypass missing assets, or prove gameplay.
+
+The fail-closed check uses `ERROR_NOT_FOUND` and logs `Twin City map 1002 is not loaded`. The source patch test verifies the guard precedes both listener setup calls; upstream source and Qt compilation remain CI dependent.
