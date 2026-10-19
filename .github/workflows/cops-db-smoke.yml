@@ -154,7 +154,7 @@ jobs:
         run: |
           set -euo pipefail
           cd upstream-cops
-          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          qmake "COPS v7 Emulator.pro" CONFIG+=release QMAKE_CXXFLAGS_RELEASE="-O0 -g"
           make -j2 > ../cops-build.log 2>&1 || { tail -n 90 ../cops-build.log; exit 1; }
           test -x "./COPS v7 Emulator"
       - name: Set up disposable MariaDB least-privilege account
@@ -284,7 +284,10 @@ jobs:
           # native stack trace rather than guessing at the movement crash.
           ulimit -c unlimited
           gdb -q --batch -ex "set pagination off" -ex "run" \
-            -ex "thread apply all bt 16" --args "./COPS v7 Emulator" > walk-attempt.log 2>&1 &
+            -ex "frame 0" -ex "info args" \
+            -ex "p this->mData.mCells" -ex "p this->mData.mPckData" \
+            -ex "p this->mPlayerCount" -ex "thread apply all bt 10" \
+            --args "./COPS v7 Emulator" > walk-attempt.log 2>&1 &
           server_pid=$!
           cleanup() {
             kill "$server_pid" 2>/dev/null || true
