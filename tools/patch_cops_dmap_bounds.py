@@ -30,7 +30,8 @@ def patch(root: Path):
         """    mCells = new Cell[mWidth * mHeight];\n    for (uint16_t y = 0; ERROR_SUCCESS == err && y < mHeight; ++y)""",
         """    if (err != ERROR_SUCCESS)
         return err;
-    mCells = new Cell[size_t(mWidth) * size_t(mHeight)];""")
+    mCells = new Cell[size_t(mWidth) * size_t(mHeight)];
+    for (uint16_t y = 0; ERROR_SUCCESS == err && y < mHeight; ++y)""")
     replace_once(path,
         """    DOIF(err, aReader.readInt32(count));
     mPassages.reserve(count);""",
@@ -44,7 +45,9 @@ def patch(root: Path):
         """            if (posX < UINT16_MAX && posX < UINT16_MAX)
             {
                 passage->PosX = (uint16_t)posX;""",
-        """            if (posX < mWidth && posY < mHeight)""")
+        """            if (posX < mWidth && posY < mHeight)
+            {
+                passage->PosX = (uint16_t)posX;""")
     replace_once(path,
         """    LOG(INFO, "Found %d layers for the map.", count);
 
