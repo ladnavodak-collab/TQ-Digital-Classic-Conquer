@@ -253,7 +253,16 @@ jobs:
           python3 ../tools/cops_game_ticket_redemption_probe.py
           python3 ../tools/cops_live_character_register.py register
           python3 ../tools/cops_existing_character_relogin.py
+          set +e
           python3 ../tools/cops_world_entry_probe.py
+          map_code=$?
+          set -e
+          if [ "$map_code" -ne 0 ]; then
+            echo "World entry diagnostic (filtered original COPS logs):"
+            grep -iE 'map|unpack|pack|error|fatal|assert|player|lock' synthetic-attempt.log | tail -n 45 || true
+            ps -o pid,stat,wchan,etime,args -p "$server_pid" || true
+            exit "$map_code"
+          fi
           set +e
           python3 ../tools/cops_walk_persistence_probe.py move
           walk_code=$?
