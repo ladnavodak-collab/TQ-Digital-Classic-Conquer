@@ -263,8 +263,9 @@ jobs:
           python3 ../tools/cops_live_character_register.py register
           python3 ../tools/cops_existing_character_relogin.py
           python3 ../tools/cops_world_entry_probe.py
-          python3 ../tools/cops_game_challenge_probe.py ../cops-challenge-decode
-          python3 ../tools/cops_game_dh_probe.py
+          # Redundant read-only game challenge checks are already covered by
+          # cops_game_dh_proof_probe and the authenticated game relog; running
+          # multiple extra keygens with unoptimized debug COPS can time out.
           if ! kill -0 "$server_pid" 2>/dev/null; then
             echo "FAIL: COPS exited after truncated pre-login packets"
             exit 1
