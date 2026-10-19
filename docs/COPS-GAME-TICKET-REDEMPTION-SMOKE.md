@@ -1,0 +1,5 @@
+Real COPS account-to-game ticket redemption smoke (synthetic protocol client)
+
+This probe connects to the localhost COPS game listener, decrypts its Blowfish CFB64 initial DH challenge, chooses an ephemeral private exponent, computes B and the shared Blowfish session key, authenticates a disposable Argon2id account via the account listener, then sends the encrypted DH response followed by a correctly encrypted MsgConnect containing the issued transfer ticket. A successful result must produce a decryptable MsgTalk character-registration prompt from the actual hardened COPS game server.
+
+Upstream COPS currently expects the DH response and first game packet in one TCP receive; the probe submits them in one send. A game client can segment traffic differently. This is a narrow experimental protocol test and not proof of full TCP stream reassembly, real 5065 client interoperability, completed character creation, world entry, or a public-safe server. No ticket values are logged. All sockets are localhost only.
