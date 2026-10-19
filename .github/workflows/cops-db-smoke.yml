@@ -1,0 +1,118 @@
+name: COPS disposable database and startup smoke
+on:
+  pull_request:
+    branches: [main]
+    paths:
+      - '.github/workflows/cops-db-smoke.yml'
+      - 'docs/COPS-DATABASE-SMOKE.md'
+      - 'tools/patch_cops_startup_gate.py'
+permissions:
+  contents: read
+jobs:
+  startup-smoke:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 30
+    steps:
+      - uses: actions/checkout@v4
+      - name: Install server dependencies
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends git build-essential qtbase5-dev qt5-qmake libqt5sql5-mysql libsodium-dev mariadb-server mariadb-client
+      - name: Check out and harden upstream
+        shell: bash
+        run: |
+          set -euo pipefail
+          git clone --depth 1 https://github.com/cptsky42/COPS-v7-Emulator.git upstream-cops
+          git -C upstream-cops rev-parse HEAD | tee upstream-commit.txt
+          python3 tools/patch_cops_bounds.py upstream-cops
+          python3 tools/patch_cops_dh_validation.py upstream-cops
+          python3 tools/patch_cops_db_startup.py upstream-cops
+          python3 tools/patch_cops_argon2id.py upstream-cops
+          python3 tools/patch_cops_startup_gate.py upstream-cops
+          git -C upstream-cops diff --check
+      - name: Compile real COPS executable
+        shell: bash
+        run: |
+          set -euo pipefail
+          cd upstream-cops
+          qmake "COPS v7 Emulator.pro" CONFIG+=release
+          make -j2 > ../cops-build.log 2>&1 || { tail -n 90 ../cops-build.log; exit 1; }
+          test -x "./COPS v7 Emulator"
+      - name: Set up disposable MariaDB least-privilege account
+        shell: bash
+        run: |
+          set -euo pipefail
+          sudo systemctl start mariadb
+          db_password="$(openssl rand -hex 24)"
+          # Never show or upload credentials; this file is deleted after smoke checks.
+          umask 077
+          printf 'COPS_SQL_PASSWORD=%s\n' "$db_password" > "$RUNNER_TEMP/cops-ci.env"
+          sudo mariadb -e "CREATE DATABASE tq_ci; CREATE USER 'tq_ci'@'localhost' IDENTIFIED BY '$db_password'; GRANT SELECT,INSERT,UPDATE,DELETE ON tq_ci.* TO 'tq_ci'@'localhost';"
+          mariadb --host=127.0.0.1 --user=tq_ci --password="$db_password" -e "SELECT 1" tq_ci > /dev/null
+      - name: Test actual COPS startup failure modes
+        shell: bash
+        run: |
+          set -euo pipefail
+          mkdir -p startup-smoke
+          cp "upstream-cops/COPS v7 Emulator" startup-smoke/
+          cat > startup-smoke/settings.cfg <<'CFG'
+          [COPS_EMULATOR]
+          NAME = TQ-CI
+          SERVER_IP = 127.0.0.1
+          SQL_HOST = 127.0.0.1
+          SQL_DB = tq_ci
+          SQL_USER = tq_ci
+          CFG
+          cd startup-smoke
+          # A missing database secret must be rejected before anything is served.
+          set +e
+          timeout 8s "./COPS v7 Emulator" > guard-output.log 2>&1
+          guard_code=$?
+          set -e
+          if [ "$guard_code" -eq 0 ] || [ "$guard_code" -eq 124 ]; then
+            echo "FAIL: missing database secret did not fail closed"
+            exit 1
+          fi
+          grep -q "Refusing unsafe database configuration" guard-output.log || {
+            echo "FAIL: missing-secret guard message absent"; exit 1;
+          }
+          echo "PASS: missing secret rejected by real COPS executable"
+          # Provide a disposable secret; this step is diagnostic, not a
+          # playability assertion. Empty DB and missing maps are expected.
+          source "$RUNNER_TEMP/cops-ci.env"
+          export COPS_SQL_PASSWORD
+          set +e
+          timeout 8s "./COPS v7 Emulator" > database-attempt.log 2>&1
+          connect_code=$?
+          set -e
+          echo "Database attempt exit code: $connect_code"
+          if grep -q "Refusing unsafe database configuration" database-attempt.log; then
+            echo "FAIL: injected secret was refused by config guard"
+            exit 1
+          fi
+          if grep -q "AccServer listening" database-attempt.log || grep -q "MsgServer listening" database-attempt.log; then
+            echo "FAIL: reported listeners before game data loaded"
+            exit 1
+          fi
+          if [ "$connect_code" -eq 0 ] || [ "$connect_code" -eq 124 ]; then
+            echo "FAIL: empty game database did not fail startup"
+            exit 1
+          fi
+          echo "PASS: incomplete world data fails before binding any game listeners"
+          echo "INFO: no real login or client interaction was attempted"
+      - name: Remove disposable credential file
+        if: always()
+        shell: bash
+        run: rm -f "$RUNNER_TEMP/cops-ci.env"
+      - name: Upload sanitized diagnostics
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: cops-startup-diagnostics
+          path: |
+            upstream-commit.txt
+            cops-build.log
+            startup-smoke/guard-output.log
+            startup-smoke/database-attempt.log
+          retention-days: 7
+          if-no-files-found: ignore

@@ -1,0 +1,15 @@
+# First runtime COPS startup probe (not playable)
+
+The private `COPS disposable database and startup smoke` workflow compiles COPS v7 with the receive-bounds, DH-bounds, database configuration, and Argon2id verification patches.
+
+It then creates a throwaway MariaDB instance with a restricted game application account and a generated credential, without writing that credential to GitHub or uploaded logs.
+
+**Acceptance of this test**:
+- The executable builds from actual COPS upstream source.
+- It rejects missing SQL secrets at startup (fail closed).
+- It can be run against a disposable database to observe the *next* failure.
+- It prints whether either game listener was observed, but listener messages do not imply successful loading or authenticated gameplay.
+
+The empty database does **not** include the original 5065 schema, game maps, `GameMap.ini`, or official game content. COPS attempts `loadAllMaps`, `loadAllItems`, `loadAllNPCs`, `loadAllMonsters`, `loadAllGenerators`, and `loadAllMagics`; therefore this is deliberately *not* an end-to-end server startup or client login test.
+
+A real playable build still needs a vetted database migration, legitimate client/map resources, cipher-accurate encrypted TCP stream reassembly, real login and character persistence tests. Keep listeners inaccessible to public networks.
