@@ -1,0 +1,274 @@
+{
+  "version": "1.0.0",
+  "project": "TQ Digital Classic Conquer",
+  "name": "Twin City Reimagined",
+  "map_id": 1002,
+  "implementation_status": "design_only_requires_verified_map_assets",
+  "theme": "Imperial Social Hub",
+  "styles": {
+    "palette": [
+      "slate-stone",
+      "imperial-red",
+      "antique-gold",
+      "jade-teal",
+      "cherry-pink"
+    ],
+    "landmarks": [
+      "twin-dragon-monument",
+      "palace-terrace",
+      "market-canals",
+      "moon-bridges",
+      "forge-furnaces",
+      "teleport-pavilion",
+      "grand-south-gate"
+    ]
+  },
+  "districts": [
+    {
+      "id": "central_plaza",
+      "name": "Dragon Plaza",
+      "role": "safe_spawn_social",
+      "landmark": "twin-dragon-monument",
+      "npc_ids": [
+        "conductress",
+        "warehouse",
+        "pharmacist",
+        "daily_board"
+      ],
+      "visuals": [
+        "radial-paving",
+        "dragon-monument",
+        "lanterns"
+      ],
+      "coordinates": null
+    },
+    {
+      "id": "market",
+      "name": "Lotus Market",
+      "role": "classic_silver_economy",
+      "landmark": "market-canals",
+      "npc_ids": [
+        "storekeeper",
+        "garment_master",
+        "accessory_master"
+      ],
+      "visuals": [
+        "red-awning-stalls",
+        "koi-canals",
+        "arched-bridges"
+      ],
+      "coordinates": null
+    },
+    {
+      "id": "forge",
+      "name": "Ember Forge",
+      "role": "equipment_services",
+      "landmark": "forge-furnaces",
+      "npc_ids": [
+        "blacksmith",
+        "repair_master"
+      ],
+      "visuals": [
+        "stone-forges",
+        "amber-lights"
+      ],
+      "coordinates": null
+    },
+    {
+      "id": "guild",
+      "name": "Banner Court",
+      "role": "guild_services",
+      "landmark": "palace-terrace",
+      "npc_ids": [
+        "guild_director",
+        "guild_conductor"
+      ],
+      "visuals": [
+        "ceremonial-banners",
+        "stone-lions"
+      ],
+      "coordinates": null
+    },
+    {
+      "id": "training",
+      "name": "Adventure Gate",
+      "role": "starter_training",
+      "landmark": "grand-south-gate",
+      "npc_ids": [
+        "training_master",
+        "hunt_board"
+      ],
+      "visuals": [
+        "training-targets",
+        "stone-bridge"
+      ],
+      "coordinates": null
+    },
+    {
+      "id": "teleport",
+      "name": "Jade Waystation",
+      "role": "travel_services",
+      "landmark": "teleport-pavilion",
+      "npc_ids": [
+        "job_center_guide"
+      ],
+      "visuals": [
+        "jade-pillars",
+        "blue-portal-fountain"
+      ],
+      "coordinates": null
+    }
+  ],
+  "npcs": [
+    {
+      "id": "conductress",
+      "type": "classic",
+      "service": "regional_travel",
+      "district": "central_plaza",
+      "coordinates": null
+    },
+    {
+      "id": "warehouse",
+      "type": "classic",
+      "service": "warehouse",
+      "district": "central_plaza",
+      "coordinates": null
+    },
+    {
+      "id": "pharmacist",
+      "type": "classic",
+      "service": "potions_silver",
+      "district": "central_plaza",
+      "coordinates": null
+    },
+    {
+      "id": "storekeeper",
+      "type": "classic",
+      "service": "basic_goods_silver",
+      "district": "market",
+      "coordinates": null
+    },
+    {
+      "id": "blacksmith",
+      "type": "classic",
+      "service": "equipment",
+      "district": "forge",
+      "coordinates": null
+    },
+    {
+      "id": "guild_director",
+      "type": "classic",
+      "service": "guild_registration",
+      "district": "guild",
+      "coordinates": null
+    },
+    {
+      "id": "guild_conductor",
+      "type": "classic",
+      "service": "guild_travel",
+      "district": "guild",
+      "coordinates": null
+    },
+    {
+      "id": "repair_master",
+      "type": "custom",
+      "service": "repair",
+      "district": "forge",
+      "coordinates": null
+    },
+    {
+      "id": "garment_master",
+      "type": "custom",
+      "service": "cosmetic_preview_silver",
+      "district": "market",
+      "coordinates": null
+    },
+    {
+      "id": "accessory_master",
+      "type": "custom",
+      "service": "accessory_preview_silver",
+      "district": "market",
+      "coordinates": null
+    },
+    {
+      "id": "daily_board",
+      "type": "custom",
+      "service": "daily_quests",
+      "district": "central_plaza",
+      "coordinates": null
+    },
+    {
+      "id": "training_master",
+      "type": "custom",
+      "service": "beginner_guidance",
+      "district": "training",
+      "coordinates": null
+    },
+    {
+      "id": "hunt_board",
+      "type": "custom",
+      "service": "hunting_dailies",
+      "district": "training",
+      "coordinates": null
+    },
+    {
+      "id": "job_center_guide",
+      "type": "classic_link",
+      "service": "job_center",
+      "district": "teleport",
+      "coordinates": null
+    }
+  ],
+  "portals": [
+    {
+      "id": "job_center",
+      "source_map": 1002,
+      "target_map": 1004,
+      "source_coordinates": null,
+      "target_coordinates": null,
+      "requires_collision_verification": true
+    }
+  ],
+  "daily_quests": [
+    {
+      "id": "city_errand",
+      "kind": "npc_visits",
+      "reward_currency": "silver",
+      "daily_limit": 1
+    },
+    {
+      "id": "first_hunt",
+      "kind": "monster_kills",
+      "reward_currency": "silver",
+      "daily_limit": 1
+    },
+    {
+      "id": "artisan_delivery",
+      "kind": "delivery",
+      "reward_currency": "silver",
+      "daily_limit": 1
+    }
+  ],
+  "rules": {
+    "allowed_classes": [
+      "Trojan",
+      "Warrior",
+      "Archer",
+      "Fire Taoist",
+      "Water Taoist"
+    ],
+    "max_rebirths": 1,
+    "conquer_points": false,
+    "shopping_mall": false,
+    "currency": "silver",
+    "safe_zone": true
+  },
+  "releases": {
+    "visual_assets_verified": false,
+    "dmap_and_gamemap_ini_verified": false,
+    "walkability_verified": false,
+    "server_npcs_placed": false,
+    "client_render_verified": false,
+    "playable": false
+  }
+}
