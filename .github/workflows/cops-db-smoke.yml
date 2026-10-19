@@ -5,6 +5,7 @@ on:
     paths:
       - '.github/workflows/cops-db-smoke.yml'
       - 'docs/COPS-DATABASE-SMOKE.md'
+      - 'tools/patch_cops_startup_gate.py'
 permissions:
   contents: read
 jobs:
@@ -27,6 +28,7 @@ jobs:
           python3 tools/patch_cops_dh_validation.py upstream-cops
           python3 tools/patch_cops_db_startup.py upstream-cops
           python3 tools/patch_cops_argon2id.py upstream-cops
+          python3 tools/patch_cops_startup_gate.py upstream-cops
           git -C upstream-cops diff --check
       - name: Compile real COPS executable
         shell: bash
@@ -89,10 +91,14 @@ jobs:
             exit 1
           fi
           if grep -q "AccServer listening" database-attempt.log || grep -q "MsgServer listening" database-attempt.log; then
-            echo "WARNING: COPS reached listener startup despite empty world/schema; NOT proof of playability"
-          else
-            echo "INFO: game listener was not confirmed; schema/maps still required"
+            echo "FAIL: reported listeners before game data loaded"
+            exit 1
           fi
+          if [ "$connect_code" -eq 0 ] || [ "$connect_code" -eq 124 ]; then
+            echo "FAIL: empty game database did not fail startup"
+            exit 1
+          fi
+          echo "PASS: incomplete world data fails before binding any game listeners"
           echo "INFO: no real login or client interaction was attempted"
       - name: Remove disposable credential file
         if: always()
